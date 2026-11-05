@@ -3,41 +3,45 @@
 #include <stddef.h>
 #include "limine.h"
 
-/* Limine boot protocol markers */
-static volatile uint64_t base_revision[3]
+/* CosmOS Limine boot protocol requests */
+
+static volatile uint64_t limine_base_revision[3]
 __attribute__((used, section(".limine_requests"))) =
     LIMINE_BASE_REVISION(3);
 
-static volatile uint64_t requests_start[4]
+static volatile uint64_t limine_requests_start_marker[4]
 __attribute__((used, section(".limine_requests_start"))) =
     LIMINE_REQUESTS_START_MARKER;
 
-static volatile uint64_t requests_end[2]
+static volatile uint64_t limine_requests_end_marker[2]
 __attribute__((used, section(".limine_requests_end"))) =
     LIMINE_REQUESTS_END_MARKER;
 
 /* Framebuffer request */
+
 static volatile struct limine_framebuffer_request framebuffer_request
 __attribute__((used, section(".limine_requests"))) = {
     .id = LIMINE_FRAMEBUFFER_REQUEST_ID,
-    .revision = 0
+    .revision = 0,
+    .response = NULL
 };
+
+/* Stop the CPU safely */
 
 static void halt_forever(void) {
     for (;;) {
-        __asm__ volatile ("hlt");
+        __asm__ volatile ("cli; hlt");
     }
 }
 
-void _start(void) {
-    if (!LIMINE_BASE_REVISION_SUPPORTED) {
-        halt_forever();
-    }
+/* CosmOS kernel entry point */
 
+void _start(void) {
     struct limine_framebuffer_response *response =
         framebuffer_request.response;
 
-    if (response == NULL || response->framebuffer_count == 0) {
+    if (response == NULL ||
+        response->framebuffer_count == 0) {
         halt_forever();
     }
 
@@ -54,10 +58,14 @@ void _start(void) {
     uint64_t height = fb->height;
     uint64_t pitch = fb->pitch / sizeof(uint32_t);
 
-    /* CosmOS dark blue boot background */
+    /* Draw CosmOS dark blue background */
+
     for (uint64_t y = 0; y < height; y++) {
         for (uint64_t x = 0; x < width; x++) {
-            uint8_t blue = 35 + (uint8_t)((y * 30) / height);
+
+            uint8_t blue =
+                35 + (uint8_t)((y * 30) / height);
+
             pixels[y * pitch + x] =
                 (0xFFu << 24) |
                 (12u << 16) |
@@ -65,6 +73,8 @@ void _start(void) {
                 blue;
         }
     }
+
+    /* Keep CosmOS running */
 
     halt_forever();
 }
