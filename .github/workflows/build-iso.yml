@@ -1,0 +1,34 @@
+
+name: Build CosmOS UEFI ISO
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [ main ]
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install tools
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y build-essential git make gcc binutils xorriso nasm mtools
+
+      - name: Build ISO
+        run: |
+          chmod +x build.sh
+          ./build.sh
+
+      - name: Upload ISO
+        uses: actions/upload-artifact@v4
+        with:
+          name: CosmOS-UEFI-ISO
+          path: build/CosmOS.iso
+          if-no-files-found: error
