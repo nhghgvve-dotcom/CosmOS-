@@ -40,6 +40,12 @@ static void background(void){for(uint64_t y=0;y<sh;y++)for(uint64_t x=0;x<sw;x++
 static void icon(int x,int y,int kind){uint32_t a=0xFF9B8CFF;roundrect(x,y,38,34,0xFF25243D);if(kind==0){rect(x+7,y+8,24,17,0xFFB8A7FF);rect(x+7,y+8,24,4,0xFFE8E4FF);}else if(kind==1){roundrect(x+7,y+5,24,23,0xFF6D9FEF);rect(x+10,y+9,18,2,0xFFFFFFFF);}else if(kind==2){roundrect(x+7,y+6,24,22,0xFF4BBE9A);rect(x+11,y+11,16,2,0xFFFFFFFF);rect(x+11,y+16,12,2,0xFFFFFFFF);}else if(kind==3){roundrect(x+7,y+6,24,22,0xFFDAA75D);rect(x+11,y+10,16,2,0xFFFFFFFF);rect(x+11,y+15,16,2,0xFFFFFFFF);}else{roundrect(x+7,y+6,24,22,a);rect(x+11,y+10,16,3,0xFFFFFFFF);}}
 static int win=0, mouse_x=100,mouse_y=100, left_down=0, mouse_enabled=0, keyboard_selection=0;
 static int installer_open=0, installer_step=0;
+static int vm_detected=0;
+static int detect_virtual_machine(void){
+ uint32_t a=1,b=0,c=0,d=0;
+ __asm__ volatile("cpuid" : "+a"(a), "=b"(b), "=c"(c), "=d"(d));
+ return (c & (1u<<31)) != 0;
+}
 
 /* Dock hover tooltip: save and restore the small area under the label so
    pointer movement never forces a full-screen redraw. */
@@ -147,14 +153,19 @@ static void draw_installer(void){
   "This guided setup will prepare CosmOS for your computer.",
   "Choose the language and region for your new system.",
   "Choose the keyboard layout you want to use.",
-  "No supported installation disks can be detected yet.",
+  vm_detected?"A virtual machine was detected. You can skip disk selection for a safe preview.":"No supported installation disks can be detected yet.",
   "Choose a computer name and create your user account.",
   "Review your choices before installing CosmOS."
  };
  int tx=86,ty=178;
  text(tx,ty,titles[installer_step],0xFFFFFFFF,2);
  text(tx,ty+42,descs[installer_step],0xFFCBC7E5,1);
- if(installer_step==1){
+ if(installer_step==3&&vm_detected){
+  roundrect(tx,ty+78,(int)sw-190,64,0xFF263F3A);
+  text(tx+14,ty+92,"VIRTUAL MACHINE DETECTED",0xFF9BE6C3,1);
+  text(tx+14,ty+116,"Disk selection skipped for preview mode.",0xFFD5F6E7,1);
+  text(tx,ty+166,"No partitions will be created and no disk will be changed.",0xFFBEB9DD,1);
+ }else if(installer_step==1){
   roundrect(tx,ty+78,330,38,0xFF35324F);text(tx+14,ty+92,"English (United States)  v",0xFFFFFFFF,1);
   roundrect(tx,ty+126,330,38,0xFF35324F);text(tx+14,ty+140,"United States  v",0xFFFFFFFF,1);
  }else if(installer_step==2){
@@ -171,14 +182,19 @@ static void draw_installer(void){
  }else if(installer_step==5){
   text(tx,ty+82,"Language: English (United States)",0xFFCBC7E5,1);
   text(tx,ty+112,"Keyboard: U.S.",0xFFCBC7E5,1);
-  text(tx,ty+142,"Destination: unavailable",0xFFFFC2A8,1);
-  text(tx,ty+184,"Installation is blocked until disk and filesystem",0xFFFFD18A,1);
-  text(tx,ty+206,"support are implemented and tested.",0xFFFFD18A,1);
+  text(tx,ty+142,vm_detected?"Destination: skipped (VM preview)":"Destination: unavailable",vm_detected?0xFF9BE6C3:0xFFFFC2A8,1);
+  if(vm_detected){
+   text(tx,ty+184,"Virtual machine setup preview is complete.",0xFF9BE6C3,1);
+   text(tx,ty+206,"No files were installed; filesystem support is still needed.",0xFFFFD18A,1);
+  }else{
+   text(tx,ty+184,"Installation is blocked until disk and filesystem",0xFFFFD18A,1);
+   text(tx,ty+206,"support are implemented and tested.",0xFFFFD18A,1);
+  }
  }
  roundrect((int)sw-260,(int)sh-112,104,42,0xFF35324F);
  text((int)sw-232,(int)sh-96,"CANCEL",0xFFFFFFFF,1);
  roundrect((int)sw-142,(int)sh-112,112,42,installer_step==3||installer_step==5?0xFF51466E:0xFF7164B8);
- text((int)sw-119,(int)sh-96,installer_step==5?"BLOCKED":"CONTINUE",0xFFFFFFFF,1);
+ text((int)sw-119,(int)sh-96,installer_step==5?(vm_detected?"FINISH PREVIEW":"BLOCKED"):"CONTINUE",0xFFFFFFFF,1);
  text(28,(int)sh-66,"Installer preview: no disk writes are performed in this build.",0xFFAAA4CC,1);
 }
 
@@ -235,7 +251,11 @@ static int mouse_init(void){if(!wait_empty())return 0;outb(0x64,0xA8);if(!wait_e
 static void handle_click(int x,int y){
  if(installer_open){
   if(y>(int)sh-125&&x>(int)sw-270&&x<(int)sw-145){installer_open=0;installer_step=0;return;}
-  if(y>(int)sh-125&&x>(int)sw-145){if(installer_step<5)installer_step++;return;}
+  if(y>(int)sh-125&&x>(int)sw-145){
+   if(installer_step<5)installer_step++;
+   else if(vm_detected){installer_open=0;installer_step=0;}
+   return;
+  }
   if(x<70&&y<35){installer_open=0;installer_step=0;return;}
   return;
  }
@@ -291,4 +311,4 @@ static void event_loop(void){
   cursor_draw();
  }
 }
-void _start(void){struct limine_framebuffer_response*r=framebuffer_request.response;if(!r||!r->framebuffer_count)for(;;)__asm__ volatile("cli;hlt");struct limine_framebuffer*f=r->framebuffers[0];if(!f||!f->address||f->bpp!=32||f->width<320||f->height<200||f->pitch<f->width*4)for(;;)__asm__ volatile("cli;hlt");fb=f->address;sw=f->width;sh=f->height;stride=f->pitch/4;mouse_x=(int)sw/2;mouse_y=(int)sh/2;installer_open=1;installer_step=0;draw_desktop();cursor_draw();mouse_enabled=mouse_init();event_loop();}
+void _start(void){struct limine_framebuffer_response*r=framebuffer_request.response;if(!r||!r->framebuffer_count)for(;;)__asm__ volatile("cli;hlt");struct limine_framebuffer*f=r->framebuffers[0];if(!f||!f->address||f->bpp!=32||f->width<320||f->height<200||f->pitch<f->width*4)for(;;)__asm__ volatile("cli;hlt");fb=f->address;sw=f->width;sh=f->height;stride=f->pitch/4;vm_detected=detect_virtual_machine();mouse_x=(int)sw/2;mouse_y=(int)sh/2;installer_open=1;installer_step=0;draw_desktop();cursor_draw();mouse_enabled=mouse_init();event_loop();}
