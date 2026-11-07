@@ -22,7 +22,8 @@ HEADER="$(find limine-src -name limine.h -type f -print -quit)"
 
 mkdir -p build iso_root/boot/limine iso_root/EFI/BOOT
 gcc -std=gnu11 -O2 -Wall -Wextra -ffreestanding -fno-stack-protector \
-    -fno-pic -fno-pie -mno-red-zone -mcmodel=kernel -m64 \
+    -fno-pic -fno-pie -fno-tree-vectorize -mgeneral-regs-only \
+    -mno-red-zone -mcmodel=kernel -m64 \
     -I"$(dirname "$HEADER")" -c kernel/kernel.c -o build/kernel.o
 ld -nostdlib -static -z max-page-size=0x1000 -T linker.ld \
     -o build/cosmos.elf build/kernel.o
