@@ -130,14 +130,19 @@ static void read_clock(char*out){uint8_t sec,min,hour;outb(0x70,0x00);sec=inb(0x
 static void draw_desktop(void){
  background();
  /* Futuristic CosmOS space desktop with a translucent vertical dock. */
- rect(0,0,(int)sw,25,0xD90A0D20);
- text(12,9,"COSMOS",0xFFFFFFFF,1);
- text(76,9,"FILE",0xFFBEB9DD,1);
- text(108,9,"EDIT",0xFFBEB9DD,1);
- text(140,9,"VIEW",0xFFBEB9DD,1);
- text(176,9,"WINDOW",0xFFBEB9DD,1);
- text(226,9,"HELP",0xFFBEB9DD,1);
- char t[9];read_clock(t);text((int)sw-90,9,t,0xFFFFFFFF,1);
+ /* Modern translucent menu bar with original CosmOS branding. */
+ rect(0,0,(int)sw,30,0xE6111228);
+ rect(0,29,(int)sw,1,0x403F3B68);
+ aa_circle(19,15,7,0xFF9B8CFF);
+ aa_circle(19,15,3,0xFFECE8FF);
+ aa_circle(25,9,2,0xFFB8A7FF);
+ text(34,10,"CosmOS",0xFFFFFFFF,1);
+ text(104,10,"File",0xFFE0DDF5,1);
+ text(138,10,"Edit",0xFFE0DDF5,1);
+ text(170,10,"View",0xFFE0DDF5,1);
+ text(210,10,"Window",0xFFE0DDF5,1);
+ text(266,10,"Help",0xFFE0DDF5,1);
+ char t[9];read_clock(t);text((int)sw-90,10,t,0xFFFFFFFF,1);
  /* Subtle purple nebula highlights. */
  for(int y=25;y<(int)sh;y+=4){
   int band=(int)((y*19u)%83u);
