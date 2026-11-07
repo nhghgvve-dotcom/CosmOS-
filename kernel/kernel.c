@@ -153,13 +153,13 @@ static void draw_installer(void){
   "This guided setup will prepare CosmOS for your computer.",
   "Choose the language and region for your new system.",
   "Choose the keyboard layout you want to use.",
-  vm_detected?"A virtual machine was detected. You can skip disk selection for a safe preview.":"No supported installation disks can be detected yet.",
+  "No supported installation disks can be detected yet.",
   "Choose a computer name and create your user account.",
   "Review your choices before installing CosmOS."
  };
  int tx=86,ty=178;
  text(tx,ty,titles[installer_step],0xFFFFFFFF,2);
- text(tx,ty+42,descs[installer_step],0xFFCBC7E5,1);
+ text(tx,ty+42,(installer_step==3&&vm_detected)?"A virtual machine was detected. You can skip disk selection for a safe preview.":descs[installer_step],0xFFCBC7E5,1);
  if(installer_step==3&&vm_detected){
   roundrect(tx,ty+78,(int)sw-190,64,0xFF263F3A);
   text(tx+14,ty+92,"VIRTUAL MACHINE DETECTED",0xFF9BE6C3,1);
