@@ -293,4 +293,4 @@ static void event_loop(void){
   cursor_draw();
  }
 }
-void _start(void){struct limine_framebuffer_response*r=framebuffer_request.response;if(!r||!r->framebuffer_count)for(;;)__asm__ volatile("cli;hlt");struct limine_framebuffer*f=r->framebuffers[0];if(!f||!f->address||f->bpp!=32||f->width<320||f->height<200||f->pitch<f->width*4)for(;;)__asm__ volatile("cli;hlt");fb=f->address;sw=f->width;sh=f->height;stride=f->pitch/4;mouse_x=(int)sw/2;mouse_y=(int)sh/2;draw_desktop();cursor_draw();mouse_enabled=mouse_init();event_loop();}
+void _start(void){struct limine_framebuffer_response*r=framebuffer_request.response;if(!r||!r->framebuffer_count)for(;;)__asm__ volatile("cli;hlt");struct limine_framebuffer*f=r->framebuffers[0];if(!f||!f->address||f->bpp!=32||f->width<320||f->height<200||f->pitch<f->width*4)for(;;)__asm__ volatile("cli;hlt");fb=f->address;sw=f->width;sh=f->height;stride=f->pitch/4;mouse_x=(int)sw/2;mouse_y=(int)sh/2;installer_open=1;installer_step=0;draw_desktop();cursor_draw();mouse_enabled=mouse_init();event_loop();}
