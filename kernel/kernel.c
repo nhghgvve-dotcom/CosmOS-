@@ -4,6 +4,7 @@
 #include "storage.h"
 #include "pci.h"
 #include "e1000.h"
+#include "net.h"
 
 /* CosmOS kernel framebuffer + first native desktop shell.
    This is freestanding kernel code: no hosted browser/HTML runtime yet. */
@@ -448,7 +449,7 @@ static void event_loop(void){
   cursor_draw();
  }
 }
-void _start(void){struct limine_framebuffer_response*r=framebuffer_request.response;if(!r||!r->framebuffer_count)for(;;)__asm__ volatile("cli;hlt");struct limine_framebuffer*f=r->framebuffers[0];if(!f||!f->address||f->bpp!=32||f->width<320||f->height<200||f->pitch<f->width*4)for(;;)__asm__ volatile("cli;hlt");fb=f->address;sw=f->width;sh=f->height;stride=f->pitch/4;vm_detected=detect_virtual_machine();cosmos_pci_init();cosmos_e1000_probe();storage_count=cosmos_storage_init();
+void _start(void){struct limine_framebuffer_response*r=framebuffer_request.response;if(!r||!r->framebuffer_count)for(;;)__asm__ volatile("cli;hlt");struct limine_framebuffer*f=r->framebuffers[0];if(!f||!f->address||f->bpp!=32||f->width<320||f->height<200||f->pitch<f->width*4)for(;;)__asm__ volatile("cli;hlt");fb=f->address;sw=f->width;sh=f->height;stride=f->pitch/4;vm_detected=detect_virtual_machine();cosmos_pci_init();cosmos_e1000_probe();cosmos_net_init();storage_count=cosmos_storage_init();
  for(uint8_t d=0;d<4;d++) if(cosmos_ata_devices[d].present){
   cosmos_partition found[4]; int n=cosmos_partition_scan(d,found,4); partition_count+=n;
   for(int i=0;i<n;i++) if(found[i].type==0x0B||found[i].type==0x0C||found[i].type==0x0E||found[i].type==0x06)
