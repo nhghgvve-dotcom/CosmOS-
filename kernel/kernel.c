@@ -5,6 +5,7 @@
 #include "pci.h"
 #include "e1000.h"
 #include "net.h"
+#include "apps.h"
 
 /* CosmOS kernel framebuffer + first native desktop shell.
    This is freestanding kernel code: no hosted browser/HTML runtime yet. */
@@ -119,7 +120,7 @@ static void tip_draw(void){
  text(tip_x+(116-len*8)/2,tip_y+6,labels[n],light_mode?0xFF20243A:0xFFFFFFFF,1);
  tip_visible=1;
 }
-static const char* names[6]={"FINDER","COSMOSTAR","NOTES","SETTINGS","CALENDAR","APP STORE"};
+static const char* names[7]={"FINDER","COSMOSTAR","NOTES","SETTINGS","CALENDAR","APP STORE","COSMO AGENT"};
 static int window_x=-1,window_y=-1,window_dragging=0,window_drag_dx=0,window_drag_dy=0;
 static void window_bounds(int *x,int *y,int *w,int *h){
  *w=(int)(sw*2/3);*h=(int)(sh*2/3);
@@ -177,15 +178,24 @@ static void draw_window(void){
  }else if(win==5){
   text(x+24,y+68,"CALENDAR",0xFFE4E1FF,2);
   text(x+24,y+105,"YOUR SCHEDULE",0xFFBEB9DD,1);
- }else{
-  text(x+24,y+68,"DISCOVER REAL APPLICATIONS",light_mode?0xFF20243A:0xFFE4E1FF,2);
-  const int rowh=43; const int sy=y+100; const uint32_t card=light_mode?0xFFE6EAF3:0xFF302E49; const uint32_t fg=light_mode?0xFF20243A:0xFFFFFFFF;
-  roundrect(x+20,sy,w-40,rowh,card);text(x+34,sy+14,"GOOGLE CHROME",fg,1);text(x+w-205,sy+14,"NOT COMPATIBLE YET",light_mode?0xFF8A5B2C:0xFFFFD18A,1);
-  roundrect(x+20,sy+53,w-40,rowh,card);text(x+34,sy+67,"MINECRAFT LAUNCHER",fg,1);text(x+w-205,sy+67,"NOT COMPATIBLE YET",light_mode?0xFF8A5B2C:0xFFFFD18A,1);
-  roundrect(x+20,sy+106,w-40,rowh,card);text(x+34,sy+120,"MINECRAFT",fg,1);text(x+w-205,sy+120,"NOT COMPATIBLE YET",light_mode?0xFF8A5B2C:0xFFFFD18A,1);
-  roundrect(x+20,sy+159,w-40,rowh,card);text(x+34,sy+173,"MINECRAFT EDUCATION",fg,1);text(x+w-205,sy+173,"NOT COMPATIBLE YET",light_mode?0xFF8A5B2C:0xFFFFD18A,1);
-  text(x+24,sy+225,"These are real app listings, not installable packages yet.",light_mode?0xFF626B80:0xFFBEB9DD,1);
-  text(x+24,sy+253,"CosmOS still needs storage, networking, and an app runtime.",light_mode?0xFF626B80:0xFFBEB9DD,1);
+ }else if(win==6){
+  text(x+24,y+68,"COSMOS APPLICATION CATALOG",light_mode?0xFF20243A:0xFFE4E1FF,2);
+  const int sy=y+100; const uint32_t card=light_mode?0xFFE6EAF3:0xFF302E49; const uint32_t fg=light_mode?0xFF20243A:0xFFFFFFFF;
+  const char *labels[5]={"COSMO AGENT","GOOGLE CHROME","MINECRAFT","MINECRAFT EDUCATION","THIRD-PARTY APP PACKAGES"};
+  const char *states[5]={"LOCAL CORE / AI BACKEND NEEDED","BLOCKED: APP RUNTIME + HTTPS","BLOCKED: APP RUNTIME","BLOCKED: APP RUNTIME","PACKAGE INSTALLER NOT READY"};
+  for(int i=0;i<5;i++){int yy=sy+i*49;roundrect(x+20,yy,w-40,41,card);text(x+34,yy+13,labels[i],fg,1);text(x+w-330,yy+13,states[i],light_mode?0xFF8A5B2C:0xFFFFD18A,1);}
+  text(x+24,sy+260,"Cosmo Agent has a local command core; it is not connected to an AI model.",light_mode?0xFF626B80:0xFFBEB9DD,1);
+  text(x+24,sy+286,"Package validation and app registry are in the kernel; disk install/runtime",light_mode?0xFF626B80:0xFFBEB9DD,1);
+  text(x+24,sy+308,"must be completed before third-party apps can be installed and launched.",light_mode?0xFF626B80:0xFFBEB9DD,1);
+ }else if(win==7){
+  text(x+24,y+68,"COSMO AGENT",0xFF8B7CE0,2);
+  text(x+24,y+112,"LOCAL COMMAND CORE",light_mode?0xFF20243A:0xFFE4E1FF,1);
+  roundrect(x+20,y+140,w-40,76,light_mode?0xFFE6EAF3:0xFF302E49);
+  text(x+36,y+158,"Cosmo can classify built-in system commands.",light_mode?0xFF20243A:0xFFFFFFFF,1);
+  text(x+36,y+184,"AI model connection: NOT CONNECTED",light_mode?0xFF8A5B2C:0xFFFFD18A,1);
+  text(x+24,y+244,"Supported intents: open Finder, Browser, Notes, Settings,",light_mode?0xFF626B80:0xFFBEB9DD,1);
+  text(x+24,y+270,"Calendar, switch light/dark mode, and help.",light_mode?0xFF626B80:0xFFBEB9DD,1);
+  text(x+24,y+314,"Network + secure model API are required for conversational AI.",light_mode?0xFF626B80:0xFFBEB9DD,1);
  }
 }
 static void read_clock(char*out){uint8_t sec,min,hour;outb(0x70,0x00);sec=inb(0x71);outb(0x70,0x02);min=inb(0x71);outb(0x70,0x04);hour=inb(0x71);outb(0x70,0x0B);uint8_t mode=inb(0x71);int pm=(hour&0x80)!=0;hour&=0x7F;if(!(mode&4)){sec=(sec&15)+((sec>>4)*10);min=(min&15)+((min>>4)*10);if(!(mode&2))hour=(hour&15)+((hour>>4)*10);}if(!(mode&2)){hour%=12;if(pm)hour+=12;}int h=hour%12;if(!h)h=12;out[0]='0'+h/10;out[1]='0'+h%10;out[2]=':';out[3]='0'+min/10;out[4]='0'+min%10;out[5]=' ';out[6]=hour>=12?'P':'A';out[7]='M';out[8]=0;}
@@ -399,6 +409,7 @@ static void handle_click(int x,int y){
   else if(win==4&&x>=wx+20&&x<wx+w-20&&y>=wy+155&&y<=wy+203){settings_page=1;}
   else if(win==4&&x>=wx+20&&x<wx+w-20&&y>=wy+214&&y<=wy+262){settings_page=2;}
   else if(win==4&&x>=wx+20&&x<wx+w-20&&y>=wy+273&&y<=wy+321){settings_page=3;}
+  else if(win==6&&y>=wy+100&&y<wy+141){win=7;window_x=-1;window_y=-1;}
  }
 }
 static void event_loop(void){
@@ -449,7 +460,7 @@ static void event_loop(void){
   cursor_draw();
  }
 }
-void _start(void){struct limine_framebuffer_response*r=framebuffer_request.response;if(!r||!r->framebuffer_count)for(;;)__asm__ volatile("cli;hlt");struct limine_framebuffer*f=r->framebuffers[0];if(!f||!f->address||f->bpp!=32||f->width<320||f->height<200||f->pitch<f->width*4)for(;;)__asm__ volatile("cli;hlt");fb=f->address;sw=f->width;sh=f->height;stride=f->pitch/4;vm_detected=detect_virtual_machine();cosmos_pci_init();cosmos_e1000_probe();cosmos_net_init();storage_count=cosmos_storage_init();
+void _start(void){struct limine_framebuffer_response*r=framebuffer_request.response;if(!r||!r->framebuffer_count)for(;;)__asm__ volatile("cli;hlt");struct limine_framebuffer*f=r->framebuffers[0];if(!f||!f->address||f->bpp!=32||f->width<320||f->height<200||f->pitch<f->width*4)for(;;)__asm__ volatile("cli;hlt");fb=f->address;sw=f->width;sh=f->height;stride=f->pitch/4;vm_detected=detect_virtual_machine();cosmos_pci_init();cosmos_e1000_probe();cosmos_net_init();cosmos_apps_init();storage_count=cosmos_storage_init();
  for(uint8_t d=0;d<4;d++) if(cosmos_ata_devices[d].present){
   cosmos_partition found[4]; int n=cosmos_partition_scan(d,found,4); partition_count+=n;
   for(int i=0;i<n;i++) if(found[i].type==0x0B||found[i].type==0x0C||found[i].type==0x0E||found[i].type==0x06)
