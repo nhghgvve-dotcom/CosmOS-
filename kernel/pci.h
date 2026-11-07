@@ -25,6 +25,11 @@ static inline uint16_t cosmos_pci_config_read16(uint8_t bus,uint8_t device,uint8
  uint32_t value=cosmos_pci_config_read32(bus,device,function,offset);
  return (uint16_t)(value>>((offset&2u)*8u));
 }
+static inline void cosmos_pci_config_write16(uint8_t bus,uint8_t device,uint8_t function,uint8_t offset,uint16_t value){
+ uint32_t address=0x80000000u|((uint32_t)bus<<16)|((uint32_t)device<<11)|((uint32_t)function<<8)|(offset&0xFCu);
+ __asm__ volatile("outl %0,%1"::"a"(address),"Nd"((uint16_t)0xCF8));
+ __asm__ volatile("outw %0,%1"::"a"(value),"Nd"((uint16_t)(0xCFCu+(offset&2u))));
+}
 static void cosmos_pci_init(void){
  cosmos_pci_device_count=0;
  for(uint32_t bus=0;bus<256;bus++)for(uint32_t dev=0;dev<32;dev++){
