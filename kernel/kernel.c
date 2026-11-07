@@ -173,16 +173,14 @@ static void event_loop(void){
   if(!(status&1)){pause_cpu();continue;}
   uint8_t data=inb(0x60);
   if(!(status&0x20)){
-   /* Keyboard fallback: arrow keys choose dock apps; Enter opens one. */
-   if(!mouse_enabled){
-    if(data==0xE0)continue;
-    if(data==0x4B){keyboard_selection=(keyboard_selection+5)%6;}
-    else if(data==0x4D){keyboard_selection=(keyboard_selection+1)%6;}
-    else if(data==0x1C){win=keyboard_selection+1;}
-    else if(data==0x01){win=0;}
-    else continue;
-    cursor_erase();draw_desktop();cursor_draw();
-   }
+   /* Keyboard navigation works alongside the mouse, not only as a fallback. */
+   if(data==0xE0)continue;
+   if(data==0x4B){keyboard_selection=(keyboard_selection+5)%6;}
+   else if(data==0x4D){keyboard_selection=(keyboard_selection+1)%6;}
+   else if(data==0x1C){win=keyboard_selection+1;}
+   else if(data==0x01){win=0;}
+   else continue;
+   cursor_erase();tip_erase();draw_desktop();tip_draw();cursor_draw();
    continue;
   }
   if(!mouse_enabled)continue;
