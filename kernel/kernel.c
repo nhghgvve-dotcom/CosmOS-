@@ -39,6 +39,9 @@ static void text(int x,int y,const char*s,uint32_t c,int scale){
 }
 static int light_mode=0;
 static int settings_page=0;
+/* Keep retired installer code buildable, but never launch it on startup. */
+static int installer_open=0;
+static int installer_step=0;
 static void background(void){for(uint64_t y=0;y<sh;y++)for(uint64_t x=0;x<sw;x++){uint8_t b=light_mode?238+(uint8_t)(y*12/sh):32+(uint8_t)(y*28/sh);uint32_t c=light_mode?(0xFF000000u|(b<<16)|((b+2)<<8)|(b+8)):(0xFF000000u|(12u<<16)|(13u<<8)|b);pixel((int)x,(int)y,c);}for(int i=0;i<70;i++){uint64_t x=(i*7919u+37u)%sw,y=(i*3571u+19u)%sh;pixel((int)x,(int)y,light_mode?0xFFB5B5D0:0xFF7776B8);}}
 static void icon(int x,int y,int kind){
  roundrect(x,y,38,34,light_mode?0xFFE3E5F0:0xFF25243D);
