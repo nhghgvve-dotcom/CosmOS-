@@ -117,9 +117,15 @@ static void tip_draw(void){
  tip_visible=1;
 }
 static const char* names[6]={"FINDER","COSMOSTAR","NOTES","SETTINGS","CALENDAR","APP STORE"};
+static int window_x=-1,window_y=-1,window_dragging=0,window_drag_dx=0,window_drag_dy=0;
+static void window_bounds(int *x,int *y,int *w,int *h){
+ *w=(int)(sw*2/3);*h=(int)(sh*2/3);
+ *x=window_x<0?((int)sw-*w)/2:window_x;
+ *y=window_y<0?((int)sh-*h)/2:window_y;
+}
 static void draw_window(void){
  if(!win)return;
- int w=(int)(sw*2/3),h=(int)(sh*2/3),x=((int)sw-w)/2,y=((int)sh-h)/2;
+ int w,h,x,y;window_bounds(&x,&y,&w,&h);
  roundrect(x+5,y+7,w,h,light_mode?0x30304050:0x60101020);
  roundrect(x,y,w,h,light_mode?0xF2F7F8FC:0xF21B1B2B);
  roundrect(x+1,y+1,w-2,38,light_mode?0xFFE4E8F2:0xFF302E49);
@@ -337,8 +343,11 @@ static void handle_click(int x,int y){
   int n=(y-dy-9)/74;if(n>=0&&n<6)win=n+1;return;
  }
  if(win){
-  int w=(int)(sw*2/3),h=(int)(sh*2/3),wx=((int)sw-w)/2,wy=((int)sh-h)/2;
-  if(x>=wx+8&&x<wx+32&&y>=wy+5&&y<wy+25)win=0;
+   int w,h,wx,wy;window_bounds(&wx,&wy,&w,&h);
+   if(x>=wx+8&&x<wx+32&&y>=wy+5&&y<wy+25){win=0;window_dragging=0;window_x=-1;window_y=-1;}
+   else if(y>=wy&&y<wy+38&&x>=wx+42&&x<wx+w){
+    window_dragging=1;window_drag_dx=x-wx;window_drag_dy=y-wy;
+   }
   else if(win==4&&x>=wx+20&&x<wx+w-20&&y>=wy+96&&y<=wy+144){light_mode=!light_mode;}
   else if(win==4&&x>=wx+20&&x<wx+w-20&&y>=wy+155&&y<=wy+203){settings_page=1;}
   else if(win==4&&x>=wx+20&&x<wx+w-20&&y>=wy+214&&y<=wy+262){settings_page=2;}
@@ -375,12 +384,20 @@ static void event_loop(void){
   if(mouse_x>(int)sw-16)mouse_x=(int)sw-16;
   if(mouse_y>(int)sh-16)mouse_y=(int)sh-16;
   int pressed=(p[0]&1)!=0;
-  int old_win=win;
-  if(pressed&&!left_down)handle_click(mouse_x,mouse_y);
-  left_down=pressed;
-  /* Only repaint the desktop when a click changes the active window. Normal
-     pointer movement now touches just the old and new cursor rectangles. */
-  if(win!=old_win)draw_desktop();
+   int old_win=win;
+   int was_dragging=window_dragging;
+   if(pressed&&!left_down)handle_click(mouse_x,mouse_y);
+   if(!pressed&&left_down)window_dragging=0;
+   if(pressed&&window_dragging&&win){
+    int ww,wh,wx,wy;window_bounds(&wx,&wy,&ww,&wh);
+    window_x=mouse_x-window_drag_dx;window_y=mouse_y-window_drag_dy;
+    if(window_x<0)window_x=0;
+    if(window_y<30)window_y=30;
+    if(window_x>(int)sw-ww)window_x=(int)sw-ww;
+    if(window_y>(int)sh-40)window_y=(int)sh-40;
+   }
+   left_down=pressed;
+   if(win!=old_win||(pressed&&window_dragging)||was_dragging)draw_desktop();
   tip_draw();
   cursor_draw();
  }
