@@ -42,7 +42,26 @@ static int settings_page=0;
 /* Keep retired installer code buildable, but never launch it on startup. */
 static int installer_open=0;
 static int installer_step=0;
-static void background(void){for(uint64_t y=0;y<sh;y++)for(uint64_t x=0;x<sw;x++){uint8_t b=light_mode?238+(uint8_t)(y*12/sh):32+(uint8_t)(y*28/sh);uint32_t c=light_mode?(0xFF000000u|(b<<16)|((b+2)<<8)|(b+8)):(0xFF000000u|(12u<<16)|(13u<<8)|b);pixel((int)x,(int)y,c);}for(int i=0;i<70;i++){uint64_t x=(i*7919u+37u)%sw,y=(i*3571u+19u)%sh;pixel((int)x,(int)y,light_mode?0xFFB5B5D0:0xFF7776B8);}}
+static void background(void){
+ if(light_mode){
+  /* Light theme: soft dawn sky, warm sun, and layered hills. */
+  for(uint64_t y=0;y<sh;y++){
+   uint32_t r=248-(uint32_t)(y*25/sh),g=246-(uint32_t)(y*12/sh),b=255-(uint32_t)(y*2/sh);
+   uint32_t c=0xFF000000u|(r<<16)|(g<<8)|b;
+   for(uint64_t x=0;x<sw;x++)pixel((int)x,(int)y,c);
+  }
+  aa_circle((int)(sw*3/4),(int)(sh/3),(int)(sh/11),0xFFFFD78E);
+  aa_circle((int)(sw/4),(int)(sh*9/10),(int)(sh*3/5),0xFFB9C9E9);
+  aa_circle((int)(sw*3/4),(int)(sh*19/20),(int)(sh*2/3),0xFFA8C8C1);
+  rect(0,(int)(sh*4/5),(int)sw,(int)(sh/5),0xFF9BBDB4);
+ }else{
+  for(uint64_t y=0;y<sh;y++)for(uint64_t x=0;x<sw;x++){
+   uint8_t b=32+(uint8_t)(y*28/sh);
+   pixel((int)x,(int)y,0xFF000000u|(12u<<16)|(13u<<8)|b);
+  }
+  for(int i=0;i<70;i++){uint64_t x=(i*7919u+37u)%sw,y=(i*3571u+19u)%sh;pixel((int)x,(int)y,0xFF7776B8);}
+ }
+}
 static void icon(int x,int y,int kind){
  roundrect(x,y,38,34,light_mode?0xFFE3E5F0:0xFF25243D);
  if(kind==0){ /* Finder: blue folder */
@@ -280,6 +299,7 @@ static void draw_desktop(void){
  text(138,10,"Edit",light_mode?0xFF34394D:0xFFE0DDF5,1);
  text(170,10,"View",light_mode?0xFF34394D:0xFFE0DDF5,1);
  text(210,10,"Window",light_mode?0xFF34394D:0xFFE0DDF5,1);
+ text((int)sw/2-28,10,"COSMOS",light_mode?0xFF5D6680:0xFFE8E4FF,1);
  text(266,10,"Help",light_mode?0xFF34394D:0xFFE0DDF5,1);
  char t[9];read_clock(t);text((int)sw-90,10,t,light_mode?0xFF20243A:0xFFFFFFFF,1);
  /* Subtle purple nebula highlights. */
