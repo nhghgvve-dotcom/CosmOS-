@@ -28,7 +28,65 @@ static void background(void){for(uint64_t y=0;y<sh;y++)for(uint64_t x=0;x<sw;x++
 static void icon(int x,int y,int kind){uint32_t a=0xFF9B8CFF;roundrect(x,y,38,34,0xFF25243D);if(kind==0){rect(x+7,y+8,24,17,0xFFB8A7FF);rect(x+7,y+8,24,4,0xFFE8E4FF);}else if(kind==1){roundrect(x+7,y+5,24,23,0xFF6D9FEF);rect(x+10,y+9,18,2,0xFFFFFFFF);}else if(kind==2){roundrect(x+7,y+6,24,22,0xFF4BBE9A);rect(x+11,y+11,16,2,0xFFFFFFFF);rect(x+11,y+16,12,2,0xFFFFFFFF);}else if(kind==3){roundrect(x+7,y+6,24,22,0xFFDAA75D);rect(x+11,y+10,16,2,0xFFFFFFFF);rect(x+11,y+15,16,2,0xFFFFFFFF);}else{roundrect(x+7,y+6,24,22,a);rect(x+11,y+10,16,3,0xFFFFFFFF);}}
 static int win=0, mouse_x=100,mouse_y=100, left_down=0;
 static const char* names[6]={"FINDER","COSMOSTAR","NOTES","SETTINGS","CALENDAR","APP STORE"};
-static void draw_window(void){if(!win)return;int w=(int)(sw*2/3),h=(int)(sh*2/3),x=((int)sw-w)/2,y=((int)sh-h)/2;roundrect(x,y,w,h,0xF21B1B2B);rect(x+1,y+1,w-2,30,0xFF302E49);for(int i=0;i<3;i++)roundrect(x+12+i*17,y+10,9,9,i==0?0xFFFF6B75:(i==1?0xFFFFCA65:0xFF67D99B));text(x+70,y+11,names[win-1],0xFFFFFFFF,1);rect(x+12,y+45,w-24,1,0xFF48465F);if(win==1){text(x+24,y+64,"COSMOS FILES",0xFFE4E1FF,2);text(x+24,y+100,"HOME",0xFFFFFFFF,1);text(x+24,y+125,"DESKTOP",0xFFBEB9DD,1);text(x+24,y+150,"DOCUMENTS",0xFFBEB9DD,1);}else if(win==2){text(x+24,y+65,"COSMOSTAR",0xFFE4E1FF,2);text(x+24,y+105,"BROWSER ENGINE NOT YET INCLUDED",0xFFFFD18A,1);text(x+24,y+130,"NETWORKING AND WEB RENDERING ARE NEXT",0xFFBEB9DD,1);}else if(win==3){text(x+24,y+65,"NOTES",0xFFE4E1FF,2);text(x+24,y+105,"NOTES SERVICE STARTER",0xFFBEB9DD,1);}else if(win==4){text(x+24,y+65,"SETTINGS",0xFFE4E1FF,2);text(x+24,y+105,"COSMOS SYSTEM SETTINGS",0xFFBEB9DD,1);}else if(win==5){text(x+24,y+65,"CALENDAR",0xFFE4E1FF,2);}else{text(x+24,y+65,"APP STORE",0xFFE4E1FF,2);text(x+24,y+105,"FIREFOX  MINECRAFT  FORTNITE",0xFFBEB9DD,1);}}
+static void draw_window(void){
+ if(!win)return;
+ int w=(int)(sw*2/3),h=(int)(sh*2/3),x=((int)sw-w)/2,y=((int)sh-h)/2;
+ roundrect(x+5,y+7,w,h,0x60101020);
+ roundrect(x,y,w,h,0xF21B1B2B);
+ roundrect(x+1,y+1,w-2,38,0xFF302E49);
+ for(int i=0;i<3;i++)roundrect(x+14+i*19,y+13,10,10,i==0?0xFFFF6B75:(i==1?0xFFFFCA65:0xFF67D99B));
+ text(x+82,y+15,names[win-1],0xFFFFFFFF,1);
+ rect(x+14,y+48,w-28,1,0xFF48465F);
+ if(win==1){
+  roundrect(x+14,y+62,112,h-78,0xFF242338);
+  text(x+25,y+78,"FAVORITES",0xFFAAA4CC,1);
+  text(x+25,y+105,"HOME",0xFFFFFFFF,1);
+  text(x+25,y+130,"DESKTOP",0xFFBEB9DD,1);
+  text(x+25,y+155,"DOCUMENTS",0xFFBEB9DD,1);
+  text(x+25,y+180,"DOWNLOADS",0xFFBEB9DD,1);
+  text(x+146,y+78,"RECENT FILES",0xFFE4E1FF,2);
+  roundrect(x+145,y+105,118,82,0xFF302E49);
+  roundrect(x+276,y+105,118,82,0xFF302E49);
+  roundrect(x+407,y+105,118,82,0xFF302E49);
+  text(x+160,y+205,"No files yet",0xFFBEB9DD,1);
+ }else if(win==2){
+  roundrect(x+15,y+61,w-30,30,0xFF29283E);
+  text(x+27,y+73,"GOOGLE SEARCH  |  COSMOSTAR",0xFFBEB9DD,1);
+  roundrect(x+15,y+105,w-30,h-122,0xFF242338);
+  text(x+34,y+133,"COSMOSTAR",0xFFE4E1FF,3);
+  text(x+34,y+177,"YOUR COSMOS BROWSER",0xFFBEB9DD,1);
+  roundrect(x+34,y+205,w-68,34,0xFF35324F);
+  text(x+48,y+218,"SEARCH THE WEB",0xFFBEB9DD,1);
+  text(x+34,y+270,"GOOGLE     YOUTUBE     WIKIPEDIA",0xFFB7A8FF,1);
+  text(x+34,y+302,"Web rendering and networking are still being built.",0xFFFFD18A,1);
+ }else if(win==3){
+  roundrect(x+15,y+62,125,h-80,0xFF242338);
+  text(x+29,y+80,"NOTES",0xFFE4E1FF,2);
+  text(x+29,y+110,"ALL NOTES",0xFFBEB9DD,1);
+  text(x+160,y+82,"WELCOME TO NOTES",0xFFE4E1FF,2);
+  text(x+160,y+115,"The native notes service is a work in progress.",0xFFBEB9DD,1);
+ }else if(win==4){
+  text(x+24,y+68,"SYSTEM SETTINGS",0xFFE4E1FF,2);
+  roundrect(x+20,y+96,w-40,48,0xFF302E49);
+  text(x+36,y+116,"APPEARANCE",0xFFFFFFFF,1);
+  roundrect(x+20,y+155,w-40,48,0xFF302E49);
+  text(x+36,y+175,"DISPLAY",0xFFFFFFFF,1);
+  roundrect(x+20,y+214,w-40,48,0xFF302E49);
+  text(x+36,y+234,"SOUND",0xFFFFFFFF,1);
+ }else if(win==5){
+  text(x+24,y+68,"CALENDAR",0xFFE4E1FF,2);
+  text(x+24,y+105,"YOUR SCHEDULE",0xFFBEB9DD,1);
+ }else{
+  text(x+24,y+68,"DISCOVER APPS",0xFFE4E1FF,2);
+  roundrect(x+20,y+98,150,90,0xFF302E49);
+  roundrect(x+184,y+98,150,90,0xFF302E49);
+  roundrect(x+348,y+98,150,90,0xFF302E49);
+  text(x+34,y+205,"FIREFOX",0xFFFFFFFF,1);
+  text(x+198,y+205,"MINECRAFT",0xFFFFFFFF,1);
+  text(x+362,y+205,"FORTNITE",0xFFFFFFFF,1);
+  text(x+24,y+244,"App compatibility is being developed.",0xFFBEB9DD,1);
+ }
+}
 static void read_clock(char*out){uint8_t sec,min,hour;outb(0x70,0x00);sec=inb(0x71);outb(0x70,0x02);min=inb(0x71);outb(0x70,0x04);hour=inb(0x71);outb(0x70,0x0B);uint8_t mode=inb(0x71);int pm=(hour&0x80)!=0;hour&=0x7F;if(!(mode&4)){sec=(sec&15)+((sec>>4)*10);min=(min&15)+((min>>4)*10);if(!(mode&2))hour=(hour&15)+((hour>>4)*10);}if(!(mode&2)){hour%=12;if(pm)hour+=12;}int h=hour%12;if(!h)h=12;out[0]='0'+h/10;out[1]='0'+h%10;out[2]=':';out[3]='0'+min/10;out[4]='0'+min%10;out[5]=' ';out[6]=hour>=12?'P':'A';out[7]='M';out[8]=0;}
 static void draw_desktop(void){
  background();
