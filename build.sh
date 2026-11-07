@@ -4,7 +4,7 @@ set -euo pipefail
 ROOT="$(cd "$(dirname "$0")" && pwd)"
 cd "$ROOT"
 
-for tool in git make gcc ld xorriso autoconf automake; do
+for tool in git make gcc ld xorriso autoconf automake python3; do
     command -v "$tool" >/dev/null 2>&1 || { echo "Missing tool: $tool"; exit 1; }
 done
 
@@ -21,6 +21,7 @@ HEADER="$(find limine-src -name limine.h -type f -print -quit)"
 [ -n "$HEADER" ] || { echo "Could not find limine.h in the Limine checkout."; exit 1; }
 
 mkdir -p build iso_root/boot/limine iso_root/EFI/BOOT
+python3 tools/gen_font.py build/font.h
 gcc -std=gnu11 -O2 -Wall -Wextra -ffreestanding -fno-stack-protector \
     -fno-pic -fno-pie -fno-tree-vectorize -mgeneral-regs-only \
     -mno-red-zone -mcmodel=kernel -m64 \
