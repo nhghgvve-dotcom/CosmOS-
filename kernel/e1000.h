@@ -137,6 +137,7 @@ static int cosmos_e1000_send(const void *frame,size_t length){
  cosmos_net.tx_frames++;return 1;
 }
 static void cosmos_e1000_account_frame(const uint8_t *frame,size_t length){
+ cosmos_net_dispatch_frame(frame,length);
  const uint8_t *payload;uint16_t type;
  if(!cosmos_net_ethernet_view(frame,length,&payload,&type))return;
  cosmos_net.rx_frames++;
