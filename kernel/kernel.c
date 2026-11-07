@@ -42,7 +42,7 @@ static void icon(int x,int y,int kind){uint32_t a=0xFF9B8CFF;roundrect(x,y,38,34
 static int win=0, mouse_x=100,mouse_y=100, left_down=0, mouse_enabled=0, keyboard_selection=0;
 static int installer_open=0, installer_step=0;
 static int vm_detected=0;
-static int storage_count=0;
+static int storage_count=0;\nstatic int partition_count=0;\nstatic int fat32_count=0;\nstatic cosmos_fat32_volume fat32_volume;
 static int detect_virtual_machine(void){
  uint32_t a=1,b=0,c=0,d=0;
  __asm__ volatile("cpuid" : "+a"(a), "=b"(b), "=c"(c), "=d"(d));
@@ -155,7 +155,7 @@ static void draw_installer(void){
   "This guided setup will prepare CosmOS for your computer.",
   "Choose the language and region for your new system.",
   "Choose the keyboard layout you want to use.",
-  "No supported installation disks can be detected yet.",
+  "Checking for an IDE disk and a supported FAT32 volume.",
   "Choose a computer name and create your user account.",
   "Review your choices before installing CosmOS."
  };
@@ -192,7 +192,7 @@ static void draw_installer(void){
   text(tx,ty+142,storage_count>0?"Destination: IDE disk detected (not formatted)":(vm_detected?"Destination: skipped (VM preview)":"Destination: unavailable"),(storage_count>0||vm_detected)?0xFF9BE6C3:0xFFFFC2A8,1);
   if(vm_detected){
    text(tx,ty+184,"Virtual machine setup preview is complete.",0xFF9BE6C3,1);
-   text(tx,ty+206,"No files were installed; filesystem support is still needed.",0xFFFFD18A,1);
+   text(tx,ty+206,fat32_count?"FAT32 detected; system-file installation is still being built.":"No files were installed; create or format a FAT32 volume first.",0xFFFFD18A,1);
   }else{
    text(tx,ty+184,"Installation is blocked until disk and filesystem",0xFFFFD18A,1);
    text(tx,ty+206,"support are implemented and tested.",0xFFFFD18A,1);
@@ -318,4 +318,4 @@ static void event_loop(void){
   cursor_draw();
  }
 }
-void _start(void){struct limine_framebuffer_response*r=framebuffer_request.response;if(!r||!r->framebuffer_count)for(;;)__asm__ volatile("cli;hlt");struct limine_framebuffer*f=r->framebuffers[0];if(!f||!f->address||f->bpp!=32||f->width<320||f->height<200||f->pitch<f->width*4)for(;;)__asm__ volatile("cli;hlt");fb=f->address;sw=f->width;sh=f->height;stride=f->pitch/4;vm_detected=detect_virtual_machine();storage_count=cosmos_storage_init();mouse_x=(int)sw/2;mouse_y=(int)sh/2;installer_open=1;installer_step=0;draw_desktop();cursor_draw();mouse_enabled=mouse_init();event_loop();}
+void _start(void){struct limine_framebuffer_response*r=framebuffer_request.response;if(!r||!r->framebuffer_count)for(;;)__asm__ volatile("cli;hlt");struct limine_framebuffer*f=r->framebuffers[0];if(!f||!f->address||f->bpp!=32||f->width<320||f->height<200||f->pitch<f->width*4)for(;;)__asm__ volatile("cli;hlt");fb=f->address;sw=f->width;sh=f->height;stride=f->pitch/4;vm_detected=detect_virtual_machine();storage_count=cosmos_storage_init();\n for(uint8_t d=0;d<4;d++) if(cosmos_ata_devices[d].present){\n  cosmos_partition found[4]; int n=cosmos_partition_scan(d,found,4); partition_count+=n;\n  for(int i=0;i<n;i++) if(found[i].type==0x0B||found[i].type==0x0C||found[i].type==0x0E||found[i].type==0x06)\n   if(cosmos_fat32_mount(d,found[i].start_lba,&fat32_volume)) fat32_count++;\n }\n mouse_x=(int)sw/2;mouse_y=(int)sh/2;installer_open=1;installer_step=0;draw_desktop();cursor_draw();mouse_enabled=mouse_init();event_loop();}
