@@ -291,8 +291,13 @@ static void draw_installer(void){
  text(px+24,py+ph-28,"DARK MODE  |  COSMOS SETUP",0xFF7F899D,1);
 }
 
-static void draw_desktop(void){
- if(installer_open){draw_installer();return;}
+/* Cache the clean desktop so opening or moving a window does not
+   repaint the wallpaper and every desktop decoration on each mouse packet. */
+#define COSMOS_CACHE_WIDTH 2560
+#define COSMOS_CACHE_HEIGHT 1440
+static uint32_t desktop_cache[COSMOS_CACHE_WIDTH*COSMOS_CACHE_HEIGHT];
+static int desktop_cache_valid=0,desktop_cache_light=-1;
+static void draw_desktop_base(void){
  background();
  /* Futuristic CosmOS space desktop with a translucent vertical dock. */
  /* Modern translucent menu bar with original CosmOS branding. */
@@ -323,6 +328,25 @@ static void draw_desktop(void){
  int dx=8,dy=((int)sh-dockh)/2;
  roundrect(dx,dy,64,dockh,light_mode?0xDDE9ECF5:0xB51A2140);
  for(int i=0;i<6;i++)icon(dx+13,dy+9+i*74,i);
+}
+static void draw_desktop(void){
+ if(installer_open){draw_installer();return;}
+ int cacheable=sw<=COSMOS_CACHE_WIDTH&&sh<=COSMOS_CACHE_HEIGHT;
+ if(!cacheable){
+  draw_desktop_base();
+  draw_window();
+  return;
+ }
+ if(!desktop_cache_valid||desktop_cache_light!=light_mode){
+  draw_desktop_base();
+  for(uint64_t y=0;y<sh;y++)for(uint64_t x=0;x<sw;x++)
+   desktop_cache[y*sw+x]=fb[y*stride+x];
+  desktop_cache_valid=1;
+  desktop_cache_light=light_mode;
+ }else{
+  for(uint64_t y=0;y<sh;y++)for(uint64_t x=0;x<sw;x++)
+   fb[y*stride+x]=desktop_cache[y*sw+x];
+ }
  draw_window();
 }
 static const char *cursor[16]={"X...............","XX..............","XWX.............","XWWX............","XWWWX...........","XWWWWX..........","XWWWWWX.........","XWWWWWWX........","XWWWWWWWX.......","XWWWWXXXXX......","XWXWWX..........","XX.XWWX.........","X...XWWX........",".....XWWX.......","......XWWX......",".......XX......."};
