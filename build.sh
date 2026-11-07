@@ -15,7 +15,7 @@ fi
 if [ ! -x limine-src/configure ]; then
     (cd limine-src && ./bootstrap)
 fi
-(cd limine-src && ./configure)
+(cd limine-src && ./configure --enable-uefi-x86-64 --enable-uefi-cd)
 make -C limine-src
 HEADER="$(find limine-src -name limine.h -type f -print -quit)"
 [ -n "$HEADER" ] || { echo "Could not find limine.h in the Limine checkout."; exit 1; }
