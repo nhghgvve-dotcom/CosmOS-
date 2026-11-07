@@ -25,7 +25,7 @@ python3 tools/gen_font.py build/font.h
 gcc -std=gnu11 -O2 -Wall -Wextra -ffreestanding -fno-stack-protector \
     -fno-pic -fno-pie -fno-tree-vectorize -mgeneral-regs-only \
     -mno-red-zone -mcmodel=kernel -m64 \
-    -I"$(dirname "$HEADER")" -Ibuild -c kernel/kernel.c -o build/kernel.o
+    -I"$(dirname "$HEADER")" -I"$ROOT/build" -c kernel/kernel.c -o build/kernel.o
 ld -nostdlib -static -z max-page-size=0x1000 -T linker.ld \
     -o build/cosmos.elf build/kernel.o
 
