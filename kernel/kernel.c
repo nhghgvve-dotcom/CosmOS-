@@ -298,6 +298,17 @@ static void draw_installer(void){
 #define COSMOS_CACHE_HEIGHT 1440
 static uint32_t desktop_cache[COSMOS_CACHE_WIDTH*COSMOS_CACHE_HEIGHT];
 static int desktop_cache_valid=0,desktop_cache_light=-1;
+/* Remember the last window rectangle so mouse movement restores only that
+   rectangle from the cached desktop, rather than copying the whole screen. */
+static int cached_window_visible=0;
+static int cached_window_x=0,cached_window_y=0,cached_window_w=0,cached_window_h=0;
+static void restore_cached_rect(int x,int y,int w,int h){
+ int x0=x-7,y0=y-9,x1=x+w+7,y1=y+h+9;
+ if(x0<0)x0=0;if(y0<0)y0=0;
+ if(x1>(int)sw)x1=(int)sw;if(y1>(int)sh)y1=(int)sh;
+ for(int yy=y0;yy<y1;yy++)for(int xx=x0;xx<x1;xx++)
+  fb[(uint64_t)yy*stride+(uint64_t)xx]=desktop_cache[(uint64_t)yy*sw+(uint64_t)xx];
+}
 static void draw_desktop_base(void){
  background();
  /* Futuristic CosmOS space desktop with a translucent vertical dock. */
@@ -336,6 +347,7 @@ static void draw_desktop(void){
  if(!cacheable){
   draw_desktop_base();
   draw_window();
+  cached_window_visible=0;
   return;
  }
  if(!desktop_cache_valid||desktop_cache_light!=light_mode){
@@ -344,11 +356,19 @@ static void draw_desktop(void){
    desktop_cache[y*sw+x]=fb[y*stride+x];
   desktop_cache_valid=1;
   desktop_cache_light=light_mode;
- }else{
-  for(uint64_t y=0;y<sh;y++)for(uint64_t x=0;x<sw;x++)
-   fb[y*stride+x]=desktop_cache[y*sw+x];
+  cached_window_visible=0;
+ }else if(cached_window_visible){
+  restore_cached_rect(cached_window_x,cached_window_y,
+                      cached_window_w,cached_window_h);
+  cached_window_visible=0;
  }
- draw_window();
+ if(win){
+  int x,y,w,h;window_bounds(&x,&y,&w,&h);
+  draw_window();
+  cached_window_x=x;cached_window_y=y;
+  cached_window_w=w;cached_window_h=h;
+  cached_window_visible=1;
+ }
 }
 static const char *cursor[16]={"X...............","XX..............","XWX.............","XWWX............","XWWWX...........","XWWWWX..........","XWWWWWX.........","XWWWWWWX........","XWWWWWWWX.......","XWWWWXXXXX......","XWXWWX..........","XX.XWWX.........","X...XWWX........",".....XWWX.......","......XWWX......",".......XX......."};
 /* Save-under cursor: restore only the 16x16 region instead of repainting the
