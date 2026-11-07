@@ -194,8 +194,8 @@ static void draw_installer(void){
   text(tx,ty+112,"Keyboard: U.S.",0xFFCBC7E5,1);
   text(tx,ty+142,storage_count>0?"Destination: IDE disk detected (not formatted)":(vm_detected?"Destination: skipped (VM preview)":"Destination: unavailable"),(storage_count>0||vm_detected)?0xFF9BE6C3:0xFFFFC2A8,1);
   if(vm_detected){
-   text(tx,ty+184,"Virtual machine setup preview is complete.",0xFF9BE6C3,1);
-   text(tx,ty+206,fat32_count?"FAT32 detected; system-file installation is still being built.":"No files were installed; create or format a FAT32 volume first.",0xFFFFD18A,1);
+   text(tx,ty+184,"Virtual machine preview only; installation is not available yet.",0xFF9BE6C3,1);
+   text(tx,ty+206,fat32_count?"FAT32 volume detected. Formatting and system-file copying are not connected yet.":"Preview only: no FAT32 volume detected. This build cannot format a disk or install system files yet.",0xFFFFD18A,1);
   }else{
    text(tx,ty+184,"Installation is blocked until disk and filesystem",0xFFFFD18A,1);
    text(tx,ty+206,"support are implemented and tested.",0xFFFFD18A,1);
@@ -204,7 +204,7 @@ static void draw_installer(void){
  roundrect((int)sw-260,(int)sh-112,104,42,0xFF35324F);
  text((int)sw-232,(int)sh-96,"CANCEL",0xFFFFFFFF,1);
  roundrect((int)sw-142,(int)sh-112,112,42,installer_step==3||installer_step==5?0xFF51466E:0xFF7164B8);
- text((int)sw-119,(int)sh-96,installer_step==5?(vm_detected?"FINISH PREVIEW":"BLOCKED"):"CONTINUE",0xFFFFFFFF,1);
+ text((int)sw-119,(int)sh-96,installer_step==5?(vm_detected?"CLOSE":"BLOCKED"):"CONTINUE",0xFFFFFFFF,1);
  text(28,(int)sh-66,"Installer preview: no disk writes are performed in this build.",0xFFAAA4CC,1);
 }
 
