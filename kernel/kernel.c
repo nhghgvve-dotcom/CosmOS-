@@ -6,6 +6,7 @@
 #include "e1000.h"
 #include "net.h"
 #include "transport.h"
+#include "http.h"
 #include "apps.h"
 
 /* CosmOS kernel framebuffer + first native desktop shell.
