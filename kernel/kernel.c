@@ -85,7 +85,7 @@ static void tip_draw(void){
  if(tip_visible)return;
  int dockh=6*74+18;if(dockh>(int)sh-45)dockh=(int)sh-45;
  int dx=8,dy=((int)sh-dockh)/2;
- if(mouse_x<dx+23||mouse_x>=dx+61||mouse_y<dy+9||mouse_y>=dy+9+6*74)return;
+ if(mouse_x<dx+13||mouse_x>=dx+51||mouse_y<dy+9||mouse_y>=dy+9+6*74)return;
  int n=(mouse_y-dy-9)/74;
  if(n<0||n>=6)return;
  static const char *labels[6]={"FINDER","COSMOSTAR","NOTES","SETTINGS","CALENDAR","APP STORE"};
@@ -294,8 +294,8 @@ static void draw_desktop(void){
  /* Vertical translucent dock matching the supplied desktop. */
  int dockh=6*74+18;if(dockh>(int)sh-45)dockh=(int)sh-45;
  int dx=8,dy=((int)sh-dockh)/2;
- roundrect(dx,dy,84,dockh,light_mode?0xDDE9ECF5:0xB51A2140);
- for(int i=0;i<6;i++)icon(dx+23,dy+9+i*74,i);
+ roundrect(dx,dy,64,dockh,light_mode?0xDDE9ECF5:0xB51A2140);
+ for(int i=0;i<6;i++)icon(dx+13,dy+9+i*74,i);
  draw_window();
 }
 static const char *cursor[16]={"X...............","XX..............","XWX.............","XWWX............","XWWWX...........","XWWWWX..........","XWWWWWX.........","XWWWWWWX........","XWWWWWWWX.......","XWWWWXXXXX......","XWXWWX..........","XX.XWWX.........","X...XWWX........",".....XWWX.......","......XWWX......",".......XX......."};
@@ -313,7 +313,7 @@ static int mouse_init(void){if(!wait_empty())return 0;outb(0x64,0xA8);if(!wait_e
 static void handle_click(int x,int y){
  int dockh=6*74+18;if(dockh>(int)sh-45)dockh=(int)sh-45;
  int dx=8,dy=((int)sh-dockh)/2;
- if(x>=dx+23&&x<dx+61&&y>=dy+9&&y<dy+9+6*74){
+ if(x>=dx+13&&x<dx+51&&y>=dy+9&&y<dy+9+6*74){
   int n=(y-dy-9)/74;if(n>=0&&n<6)win=n+1;return;
  }
  if(win){
