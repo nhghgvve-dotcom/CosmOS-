@@ -85,7 +85,7 @@ static void tip_draw(void){
  if(tip_visible)return;
  int dockh=6*74+18;if(dockh>(int)sh-45)dockh=(int)sh-45;
  int dx=8,dy=((int)sh-dockh)/2;
- if(mouse_x<dx+28||mouse_x>=dx+88||mouse_y<dy+9||mouse_y>=dy+9+6*74)return;
+ if(mouse_x<dx+23||mouse_x>=dx+61||mouse_y<dy+9||mouse_y>=dy+9+6*74)return;
  int n=(mouse_y-dy-9)/74;
  if(n<0||n>=6)return;
  static const char *labels[6]={"FINDER","COSMOSTAR","NOTES","SETTINGS","CALENDAR","APP STORE"};
@@ -120,15 +120,15 @@ static void draw_window(void){
   roundrect(x+407,y+105,118,82,0xFF302E49);
   text(x+160,y+205,"No files yet",0xFFBEB9DD,1);
  }else if(win==2){
-  roundrect(x+15,y+61,w-30,30,0xFF29283E);
-  text(x+27,y+73,"GOOGLE SEARCH  |  COSMOSTAR",0xFFBEB9DD,1);
-  roundrect(x+15,y+105,w-30,h-122,0xFF242338);
-  text(x+34,y+133,"COSMOSTAR",0xFFE4E1FF,3);
-  text(x+34,y+177,"YOUR COSMOS BROWSER",0xFFBEB9DD,1);
-  roundrect(x+34,y+205,w-68,34,0xFF35324F);
-  text(x+48,y+218,"SEARCH THE WEB",0xFFBEB9DD,1);
-  text(x+34,y+270,"GOOGLE     YOUTUBE     WIKIPEDIA",0xFFB7A8FF,1);
-  text(x+34,y+302,"Web rendering and networking are still being built.",0xFFFFD18A,1);
+  roundrect(x+15,y+61,w-30,34,light_mode?0xFFE2E7F0:0xFF29283E);
+  text(x+27,y+73,"COSMOSTAR  |  ADDRESS BAR",light_mode?0xFF30364A:0xFFBEB9DD,1);
+  roundrect(x+15,y+105,w-30,h-122,light_mode?0xFFEFF2F8:0xFF242338);
+  text(x+34,y+133,"COSMOSTAR",0xFF8B7CE0,3);
+  text(x+34,y+177,"WEB BROWSER",light_mode?0xFF30364A:0xFFBEB9DD,1);
+  roundrect(x+34,y+205,w-68,38,light_mode?0xFFFFFFFF:0xFF35324F);
+  text(x+48,y+219,"https://www.google.com",light_mode?0xFF30364A:0xFFBEB9DD,1);
+  text(x+34,y+270,"A real web engine is not installed yet.",light_mode?0xFF9A5B28:0xFFFFD18A,1);
+  text(x+34,y+302,"Networking, HTTPS, and page rendering are still needed.",light_mode?0xFF626B80:0xFFBEB9DD,1);
  }else if(win==3){
   roundrect(x+15,y+62,125,h-80,0xFF242338);
   text(x+29,y+80,"NOTES",0xFFE4E1FF,2);
@@ -150,14 +150,14 @@ static void draw_window(void){
   text(x+24,y+68,"CALENDAR",0xFFE4E1FF,2);
   text(x+24,y+105,"YOUR SCHEDULE",0xFFBEB9DD,1);
  }else{
-  text(x+24,y+68,"DISCOVER APPS",0xFFE4E1FF,2);
-  roundrect(x+20,y+98,150,90,0xFF302E49);
-  roundrect(x+184,y+98,150,90,0xFF302E49);
-  roundrect(x+348,y+98,150,90,0xFF302E49);
-  text(x+34,y+205,"FIREFOX",0xFFFFFFFF,1);
-  text(x+198,y+205,"MINECRAFT",0xFFFFFFFF,1);
-  text(x+362,y+205,"FORTNITE",0xFFFFFFFF,1);
-  text(x+24,y+244,"App compatibility is being developed.",0xFFBEB9DD,1);
+  text(x+24,y+68,"DISCOVER REAL APPLICATIONS",light_mode?0xFF20243A:0xFFE4E1FF,2);
+  const int rowh=43; const int sy=y+100; const uint32_t card=light_mode?0xFFE6EAF3:0xFF302E49; const uint32_t fg=light_mode?0xFF20243A:0xFFFFFFFF;
+  roundrect(x+20,sy,w-40,rowh,card);text(x+34,sy+14,"GOOGLE CHROME",fg,1);text(x+w-205,sy+14,"NOT COMPATIBLE YET",light_mode?0xFF8A5B2C:0xFFFFD18A,1);
+  roundrect(x+20,sy+53,w-40,rowh,card);text(x+34,sy+67,"MINECRAFT LAUNCHER",fg,1);text(x+w-205,sy+67,"NOT COMPATIBLE YET",light_mode?0xFF8A5B2C:0xFFFFD18A,1);
+  roundrect(x+20,sy+106,w-40,rowh,card);text(x+34,sy+120,"MINECRAFT",fg,1);text(x+w-205,sy+120,"NOT COMPATIBLE YET",light_mode?0xFF8A5B2C:0xFFFFD18A,1);
+  roundrect(x+20,sy+159,w-40,rowh,card);text(x+34,sy+173,"MINECRAFT EDUCATION",fg,1);text(x+w-205,sy+173,"NOT COMPATIBLE YET",light_mode?0xFF8A5B2C:0xFFFFD18A,1);
+  text(x+24,sy+225,"These are real app listings, not installable packages yet.",light_mode?0xFF626B80:0xFFBEB9DD,1);
+  text(x+24,sy+253,"CosmOS still needs storage, networking, and an app runtime.",light_mode?0xFF626B80:0xFFBEB9DD,1);
  }
 }
 static void read_clock(char*out){uint8_t sec,min,hour;outb(0x70,0x00);sec=inb(0x71);outb(0x70,0x02);min=inb(0x71);outb(0x70,0x04);hour=inb(0x71);outb(0x70,0x0B);uint8_t mode=inb(0x71);int pm=(hour&0x80)!=0;hour&=0x7F;if(!(mode&4)){sec=(sec&15)+((sec>>4)*10);min=(min&15)+((min>>4)*10);if(!(mode&2))hour=(hour&15)+((hour>>4)*10);}if(!(mode&2)){hour%=12;if(pm)hour+=12;}int h=hour%12;if(!h)h=12;out[0]='0'+h/10;out[1]='0'+h%10;out[2]=':';out[3]='0'+min/10;out[4]='0'+min%10;out[5]=' ';out[6]=hour>=12?'P':'A';out[7]='M';out[8]=0;}
@@ -294,8 +294,8 @@ static void draw_desktop(void){
  /* Vertical translucent dock matching the supplied desktop. */
  int dockh=6*74+18;if(dockh>(int)sh-45)dockh=(int)sh-45;
  int dx=8,dy=((int)sh-dockh)/2;
- roundrect(dx,dy,116,dockh,light_mode?0xDDE9ECF5:0xB51A2140);
- for(int i=0;i<6;i++)icon(dx+39,dy+9+i*74,i);
+ roundrect(dx,dy,84,dockh,light_mode?0xDDE9ECF5:0xB51A2140);
+ for(int i=0;i<6;i++)icon(dx+23,dy+9+i*74,i);
  draw_window();
 }
 static const char *cursor[16]={"X...............","XX..............","XWX.............","XWWX............","XWWWX...........","XWWWWX..........","XWWWWWX.........","XWWWWWWX........","XWWWWWWWX.......","XWWWWXXXXX......","XWXWWX..........","XX.XWWX.........","X...XWWX........",".....XWWX.......","......XWWX......",".......XX......."};
@@ -313,7 +313,7 @@ static int mouse_init(void){if(!wait_empty())return 0;outb(0x64,0xA8);if(!wait_e
 static void handle_click(int x,int y){
  int dockh=6*74+18;if(dockh>(int)sh-45)dockh=(int)sh-45;
  int dx=8,dy=((int)sh-dockh)/2;
- if(x>=dx+28&&x<dx+88&&y>=dy+9&&y<dy+9+6*74){
+ if(x>=dx+23&&x<dx+61&&y>=dy+9&&y<dy+9+6*74){
   int n=(y-dy-9)/74;if(n>=0&&n<6)win=n+1;return;
  }
  if(win){
