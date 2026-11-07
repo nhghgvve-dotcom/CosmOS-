@@ -139,73 +139,107 @@ static void draw_window(void){
 }
 static void read_clock(char*out){uint8_t sec,min,hour;outb(0x70,0x00);sec=inb(0x71);outb(0x70,0x02);min=inb(0x71);outb(0x70,0x04);hour=inb(0x71);outb(0x70,0x0B);uint8_t mode=inb(0x71);int pm=(hour&0x80)!=0;hour&=0x7F;if(!(mode&4)){sec=(sec&15)+((sec>>4)*10);min=(min&15)+((min>>4)*10);if(!(mode&2))hour=(hour&15)+((hour>>4)*10);}if(!(mode&2)){hour%=12;if(pm)hour+=12;}int h=hour%12;if(!h)h=12;out[0]='0'+h/10;out[1]='0'+h%10;out[2]=':';out[3]='0'+min/10;out[4]='0'+min%10;out[5]=' ';out[6]=hour>=12?'P':'A';out[7]='M';out[8]=0;}
 
-static void draw_installer(void){
- background();
- rect(0,0,(int)sw,30,0xE6111228);
- aa_circle(19,15,7,0xFF9B8CFF);aa_circle(19,15,3,0xFFECE8FF);
- text(34,10,"CosmOS Installer",0xFFFFFFFF,1);
- char stepbuf[32];
- text(28,66,"INSTALL COSMOS",0xFFEAE7FF,3);
- text(28,108,"A fresh start for your computer.",0xFFBEB9DD,1);
- roundrect(24,145,(int)sw-48,(int)sh-220,0xF21B1B2B);
- for(int i=0;i<6;i++){
-  int yy=174+i*34;
-  roundrect(44,yy,8,8,i<=installer_step?0xFF9B8CFF:0xFF55536B);
-  if(i<installer_step)rect(47,yy+2,3,4,0xFFFFFFFF);
+static int installer_panel_x(void){return (int)sw/10;}
+static int installer_panel_y(void){return (int)sh/10;}
+static int installer_panel_w(void){return (int)sw*8/10;}
+static int installer_panel_h(void){return (int)sh*8/10;}
+static void installer_wallpaper(void){
+ for(uint64_t y=0;y<sh;y++)for(uint64_t x=0;x<sw;x++){
+  unsigned v=(unsigned)(y*24/sh);
+  uint32_t c=0xFF000000u|((8u+v/3)<<16)|((12u+v/2)<<8)|(30u+v);
+  int nx=(int)(x*1000/sw)-500, ny=(int)(y*1000/sh)-500;
+  int d1=(nx+190)*(nx+190)+(ny-70)*(ny-70);
+  int d2=(nx-260)*(nx-260)+(ny+150)*(ny+150);
+  if(d1<180000)c=blend(c,0xFF30245E,(unsigned)((180000-d1)*48/180000));
+  if(d2<220000)c=blend(c,0xFF173F60,(unsigned)((220000-d2)*34/220000));
+  pixel((int)x,(int)y,c);
  }
- static const char *titles[6]={"Welcome to CosmOS","Language and Region","Keyboard Layout","Choose an Installation Disk","Create Your Account","Ready to Install"};
+ for(int i=0;i<95;i++){
+  int x=(int)((i*7919u+37u)%sw),y=(int)((i*3571u+19u)%sh);
+  pixel(x,y,(i%4)?0xFF777DAD:0xFFD5D8F4);
+ }
+ /* Soft horizon glow, part of CosmOS's own wallpaper. */
+ for(int y=(int)sh*2/3;y<(int)sh*2/3+18;y+=3)
+  rect(0,y,(int)sw,1,0x102B5A86);
+}
+static void draw_installer(void){
+ installer_wallpaper();
+ int px=installer_panel_x(),py=installer_panel_y(),pw=installer_panel_w(),ph=installer_panel_h();
+ int side=pw/3;
+ /* Dark, translucent installer window with macOS-inspired proportions. */
+ roundrect(px+7,py+10,pw,ph,0x70000000);
+ roundrect(px,py,pw,ph,0xF0161924);
+ roundrect(px+1,py+1,pw-2,58,0xFF202431);
+ rect(px+1,py+58,pw-2,1,0xFF343949);
+ for(int i=0;i<3;i++)aa_circle(px+25+i*22,py+29,6,i==0?0xFFFF6B70:(i==1?0xFFFFC45E:0xFF65D58A));
+ text(px+pw/2-130,py+16,"CosmOS Installer",0xFFF2F3FA,1);
+ /* Sidebar and step progress. */
+ roundrect(px+1,py+59,side-1,ph-60,0xFF191D29);
+ static const char *steps[6]={"Welcome","Language and Region","Keyboard Layout","Installation Disk","Create Account","Install CosmOS"};
+ for(int i=0;i<6;i++){
+  int yy=py+112+i*76;
+  uint32_t fg=i==installer_step?0xFFFFFFFF:0xFF9DA5B8;
+  if(i==installer_step)roundrect(px+22,yy-10,side-44,56,0xFF30384B);
+  aa_circle(px+48,yy+12,11,i<installer_step?0xFF83CDAA:(i==installer_step?0xFF9D8BFF:0xFF555D70));
+  if(i<installer_step)text(px+43,yy+2,"+",0xFF17251F,1);
+  text(px+72,yy+1,steps[i],fg,1);
+ }
+ text(px+30,py+ph-74,"COSMOS",0xFF9D8BFF,1);
+ text(px+30,py+ph-42,"A new world awaits.",0xFF8F98AC,1);
+ /* Main content area. */
+ int tx=px+side+66,ty=py+112;
+ static const char *titles[6]={"Welcome to CosmOS","Choose Your Language","Choose a Keyboard","Select an Installation Disk","Create Your Account","Ready to Install"};
  static const char *descs[6]={
-  "This guided setup will prepare CosmOS for your computer.",
+  "A fresh, modern desktop built for your computer.",
   "Choose the language and region for your new system.",
   "Choose the keyboard layout you want to use.",
-  "Checking for an IDE disk and a supported FAT32 volume.",
-  "Choose a computer name and create your user account.",
-  "Review your choices before installing CosmOS."
+  "Choose where CosmOS should be installed.",
+  "Set up the name for your new computer.",
+  "Review your choices before continuing."
  };
- int tx=86,ty=178;
- text(tx,ty,titles[installer_step],0xFFFFFFFF,2);
- text(tx,ty+42,(installer_step==3&&vm_detected)?"A virtual machine was detected. You can skip disk selection for a safe preview.":descs[installer_step],0xFFCBC7E5,1);
- if(installer_step==3&&storage_count>0){
-  roundrect(tx,ty+78,(int)sw-190,64,0xFF263F3A);
-  text(tx+14,ty+92,"IDE VIRTUAL DISK DETECTED",0xFF9BE6C3,1);
-  text(tx+14,ty+116,"ATA sector read/write driver is available.",0xFFD5F6E7,1);
-  text(tx,ty+166,"Formatting and filesystem installation are not ready yet.",0xFFBEB9DD,1);
- }else if(installer_step==3&&vm_detected){
-  roundrect(tx,ty+78,(int)sw-190,64,0xFF263F3A);
-  text(tx+14,ty+92,"VIRTUAL MACHINE DETECTED",0xFF9BE6C3,1);
-  text(tx+14,ty+116,"Disk selection skipped for preview mode.",0xFFD5F6E7,1);
-  text(tx,ty+166,"No partitions will be created and no disk will be changed.",0xFFBEB9DD,1);
+ text(tx,ty,titles[installer_step],0xFFF4F5FB,2);
+ text(tx,ty+52,descs[installer_step],0xFFB9C1D2,1);
+ if(installer_step==0){
+  aa_circle(tx+90,ty+190,52,0xFF9D8BFF);
+  aa_circle(tx+90,ty+190,27,0xFFECE8FF);
+  text(tx+175,ty+164,"Welcome to your new CosmOS.",0xFFE8EAF4,1);
+  text(tx+175,ty+204,"Let's get everything ready.",0xFF9DA7BC,1);
  }else if(installer_step==1){
-  roundrect(tx,ty+78,330,38,0xFF35324F);text(tx+14,ty+92,"English (United States)  v",0xFFFFFFFF,1);
-  roundrect(tx,ty+126,330,38,0xFF35324F);text(tx+14,ty+140,"United States  v",0xFFFFFFFF,1);
+  roundrect(tx,ty+112,460,58,0xFF292F3E);text(tx+22,ty+128,"English (United States)",0xFFF0F2F8,1);
+  roundrect(tx,ty+190,460,58,0xFF292F3E);text(tx+22,ty+206,"United States",0xFFF0F2F8,1);
  }else if(installer_step==2){
-  roundrect(tx,ty+78,330,38,0xFF35324F);text(tx+14,ty+92,"U.S. Keyboard  (selected)",0xFFFFFFFF,1);
+  roundrect(tx,ty+112,460,58,0xFF292F3E);text(tx+22,ty+128,"U.S. Keyboard  -  Selected",0xFFF0F2F8,1);
  }else if(installer_step==3){
-  roundrect(tx,ty+78,(int)sw-190,64,0xFF49313A);
-  text(tx+14,ty+92,"No IDE disk detected",0xFFFFC2A8,1);
-  text(tx+14,ty+116,"Connect an IDE virtual disk in VMware.",0xFFFFD8CC,1);
-  text(tx,ty+166,"Your virtual disk will not be modified.",0xFFBEB9DD,1);
- }else if(installer_step==4){
-  roundrect(tx,ty+78,330,38,0xFF35324F);text(tx+14,ty+92,"Computer name: CosmOS-PC",0xFFFFFFFF,1);
-  roundrect(tx,ty+126,330,38,0xFF35324F);text(tx+14,ty+140,"User account: not configured",0xFFFFFFFF,1);
-  text(tx,ty+180,"Account storage will be enabled with the filesystem.",0xFFFFD18A,1);
- }else if(installer_step==5){
-  text(tx,ty+82,"Language: English (United States)",0xFFCBC7E5,1);
-  text(tx,ty+112,"Keyboard: U.S.",0xFFCBC7E5,1);
-  text(tx,ty+142,storage_count>0?"Destination: IDE disk detected (not formatted)":(vm_detected?"Destination: skipped (VM preview)":"Destination: unavailable"),(storage_count>0||vm_detected)?0xFF9BE6C3:0xFFFFC2A8,1);
-  if(vm_detected){
-   text(tx,ty+184,"Virtual machine preview only; installation is not available yet.",0xFF9BE6C3,1);
-   text(tx,ty+206,fat32_count?"FAT32 volume detected. Formatting and system-file copying are not connected yet.":"Preview only: no FAT32 volume detected. This build cannot format a disk or install system files yet.",0xFFFFD18A,1);
+  if(storage_count>0){
+   roundrect(tx,ty+112, pw-side-130,76,0xFF263B39);
+   text(tx+20,ty+128,"IDE VIRTUAL DISK DETECTED",0xFF9BE6C3,1);
+   text(tx+20,ty+154,"A storage device is visible to CosmOS.",0xFFD5F6E7,1);
+   text(tx,ty+214,"Disk formatting and system-file installation are not ready.",0xFFFFD18A,1);
   }else{
-   text(tx,ty+184,"Installation is blocked until disk and filesystem",0xFFFFD18A,1);
-   text(tx,ty+206,"support are implemented and tested.",0xFFFFD18A,1);
+   roundrect(tx,ty+112,pw-side-130,76,0xFF382A30);
+   text(tx+20,ty+128,vm_detected?"NO SUPPORTED VOLUME DETECTED":"NO IDE DISK DETECTED",0xFFFFC2A8,1);
+   text(tx+20,ty+154,vm_detected?"No FAT32 volume was found.":"Connect an IDE virtual disk in VMware.",0xFFFFD8CC,1);
+   text(tx,ty+214,"This preview cannot format a disk or install system files yet.",0xFFFFD18A,1);
   }
+  if(vm_detected)text(tx,ty+260,"Virtual machine preview mode - no disk changes will be made.",0xFF9DA7BC,1);
+ }else if(installer_step==4){
+  roundrect(tx,ty+112,460,58,0xFF292F3E);text(tx+22,ty+128,"Computer name: CosmOS-PC",0xFFF0F2F8,1);
+  roundrect(tx,ty+190,460,58,0xFF292F3E);text(tx+22,ty+206,"User account: not configured",0xFFF0F2F8,1);
+  text(tx,ty+274,"Account saving will be enabled with filesystem support.",0xFFFFD18A,1);
+ }else{
+  text(tx,ty+112,"Language: English (United States)",0xFFD0D5E2,1);
+  text(tx,ty+158,"Keyboard: U.S.",0xFFD0D5E2,1);
+  text(tx,ty+204,storage_count>0?"Disk: IDE device detected (not formatted)":(vm_detected?"Disk: preview mode - no volume detected":"Disk: unavailable"),0xFFD0D5E2,1);
+  text(tx,ty+274,vm_detected?"Preview only. No files will be installed or disk changed.":"Installation is not available until disk support is complete.",0xFFFFD18A,1);
+  text(tx,ty+310,fat32_count?"FAT32 volume detected, but system-file copying is not connected.":"No FAT32 volume detected in this build.",0xFFFFD18A,1);
  }
- roundrect((int)sw-260,(int)sh-112,104,42,0xFF35324F);
- text((int)sw-232,(int)sh-96,"CANCEL",0xFFFFFFFF,1);
- roundrect((int)sw-142,(int)sh-112,112,42,installer_step==3||installer_step==5?0xFF51466E:0xFF7164B8);
- text((int)sw-119,(int)sh-96,installer_step==5?(vm_detected?"CLOSE":"BLOCKED"):"CONTINUE",0xFFFFFFFF,1);
- text(28,(int)sh-66,"Installer preview: no disk writes are performed in this build.",0xFFAAA4CC,1);
+ /* Footer controls remain inside the installer window. */
+ int by=py+ph-76;
+ roundrect(px+pw-340,by,126,48,0xFF303747);
+ text(px+pw-312,by+12,"CANCEL",0xFFE7EAF2,1);
+ roundrect(px+pw-198,by,166,48,installer_step==5?0xFF51466E:0xFF7867B5);
+ text(px+pw-166,by+12,installer_step==5?(vm_detected?"CLOSE":"BLOCKED"):"CONTINUE",0xFFFFFFFF,1);
+ text(px+24,py+ph-28,"DARK MODE  |  COSMOS SETUP",0xFF7F899D,1);
 }
 
 static void draw_desktop(void){
@@ -260,13 +294,15 @@ static int mouse_cmd(uint8_t c){uint8_t r;if(!wait_empty())return 0;outb(0x64,0x
 static int mouse_init(void){if(!wait_empty())return 0;outb(0x64,0xA8);if(!wait_empty())return 0;outb(0x64,0x20);uint8_t cfg=0;for(int i=0;i<100000;i++){if(inb(0x64)&1){cfg=inb(0x60);break;}pause_cpu();}cfg&=(uint8_t)~0x22;if(!wait_empty())return 0;outb(0x64,0x60);if(!wait_empty())return 0;outb(0x60,cfg);return mouse_cmd(0xF6)&&mouse_cmd(0xF4);}
 static void handle_click(int x,int y){
  if(installer_open){
-  if(y>(int)sh-125&&x>(int)sw-270&&x<(int)sw-145){installer_open=0;installer_step=0;return;}
-  if(y>(int)sh-125&&x>(int)sw-145){
+  int px=installer_panel_x(),py=installer_panel_y(),pw=installer_panel_w(),ph=installer_panel_h();
+  int by=py+ph-76;
+  if(y>=by&&y<=by+48&&x>=px+pw-340&&x<=px+pw-214){installer_open=0;installer_step=0;return;}
+  if(y>=by&&y<=by+48&&x>=px+pw-198&&x<=px+pw-32){
    if(installer_step<5)installer_step++;
    else if(vm_detected){installer_open=0;installer_step=0;}
    return;
   }
-  if(x<70&&y<35){installer_open=0;installer_step=0;return;}
+  if(x<px+70&&y<py+58){installer_open=0;installer_step=0;return;}
   return;
  }
  if((y<30&&x>=300&&x<400)||(x>=(int)sw-270&&x<(int)sw-24&&y>=100&&y<180)){installer_open=1;installer_step=0;return;}
