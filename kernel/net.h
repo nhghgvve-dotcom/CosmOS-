@@ -33,6 +33,9 @@ typedef struct {
 static cosmos_net_state cosmos_net;
 static cosmos_arp_entry cosmos_arp_cache[16];
 
+/* Implemented by stack.h after the NIC and transport layers are included. */
+static void cosmos_net_dispatch_frame(const uint8_t *frame,size_t length);
+
 static inline uint16_t cosmos_net_read_be16(const uint8_t *p) {
  return (uint16_t)(((uint16_t)p[0]<<8)|p[1]);
 }
