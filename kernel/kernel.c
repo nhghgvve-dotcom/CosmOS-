@@ -53,6 +53,7 @@ static void tip_erase(void){
  tip_visible=0;
 }
 static void tip_draw(void){
+ if(installer_open||tip_visible)return;
  int dockh=350;if(dockh>(int)sh-45)dockh=(int)sh-45;
  int dx=8,dy=((int)sh-dockh)/2;
  if(mouse_x<dx||mouse_x>=dx+48||mouse_y<dy||mouse_y>=dy+dockh)return;
@@ -206,6 +207,10 @@ static void draw_desktop(void){
   int band=(int)((y*19u)%83u);
   if(band<8)rect(48,y,(int)sw-48,1,0x101B1240);
  }
+ /* Prominent installer shortcut so setup is easy to discover. */
+ roundrect((int)sw-258,112,226,58,0xD52A2944);
+ icon((int)sw-246,124,4);
+ text((int)sw-196,137,"INSTALL COSMOS",0xFFFFFFFF,1);
  /* Notes.txt desktop shortcut at upper right. */
  int fx=(int)sw-82;
  icon(fx,42,3);
@@ -223,8 +228,8 @@ static const char *cursor[16]={"X...............","XX..............","XWX.......
    flashing and greatly reduces CPU work while moving the pointer. */
 static uint32_t cursor_saved[16*16];
 static int cursor_visible=0;
-static void cursor_erase(void){if(!cursor_visible)return;for(int y=0;y<16;y++)for(int x=0;x<16;x++)pixel(mouse_x+x,mouse_y+y,cursor_saved[y*16+x]);cursor_visible=0;}
-static void cursor_draw(void){for(int y=0;y<16;y++)for(int x=0;x<16;x++){cursor_saved[y*16+x]=fb[(uint64_t)(mouse_y+y)*stride+(uint64_t)(mouse_x+x)];char c=cursor[y][x];if(c=='X')pixel(mouse_x+x,mouse_y+y,0xFF05050A);else if(c=='W')pixel(mouse_x+x,mouse_y+y,0xFFFFFFFF);}cursor_visible=1;}
+static void cursor_erase(void){if(!cursor_visible)return;for(int y=0;y<16;y++)for(int x=0;x<16;x++){int px=mouse_x+x,py=mouse_y+y;if(px>=0&&py>=0&&(uint64_t)px<sw&&(uint64_t)py<sh)pixel(px,py,cursor_saved[y*16+x]);}cursor_visible=0;}
+static void cursor_draw(void){for(int y=0;y<16;y++)for(int x=0;x<16;x++){int px=mouse_x+x,py=mouse_y+y;if(px<0||py<0||(uint64_t)px>=sw||(uint64_t)py>=sh){cursor_saved[y*16+x]=0;continue;}cursor_saved[y*16+x]=fb[(uint64_t)py*stride+(uint64_t)px];char c=cursor[y][x];if(c=='X')pixel(px,py,0xFF05050A);else if(c=='W')pixel(px,py,0xFFFFFFFF);}cursor_visible=1;}
 static int wait_empty(void){for(int i=0;i<100000;i++){if(!(inb(0x64)&2))return 1;pause_cpu();}return 0;}
 static int read_aux(uint8_t*v){for(int i=0;i<100000;i++){uint8_t s=inb(0x64);if((s&0x21)==0x21){*v=inb(0x60);return 1;}pause_cpu();}return 0;}
 static int mouse_cmd(uint8_t c){uint8_t r;if(!wait_empty())return 0;outb(0x64,0xD4);if(!wait_empty())return 0;outb(0x60,c);return read_aux(&r)&&r==0xFA;}
@@ -232,11 +237,11 @@ static int mouse_init(void){if(!wait_empty())return 0;outb(0x64,0xA8);if(!wait_e
 static void handle_click(int x,int y){
  if(installer_open){
   if(y>(int)sh-125&&x>(int)sw-270&&x<(int)sw-145){installer_open=0;installer_step=0;return;}
-  if(y>(int)sh-125&&x>(int)sw-145){if(installer_step<5&&installer_step!=3)installer_step++;return;}
+  if(y>(int)sh-125&&x>(int)sw-145){if(installer_step<5)installer_step++;return;}
   if(x<70&&y<35){installer_open=0;installer_step=0;return;}
   return;
  }
- if(y<30&&x>=310&&x<380){installer_open=1;installer_step=0;return;}
+ if((y<30&&x>=300&&x<400)||(x>=(int)sw-270&&x<(int)sw-24&&y>=100&&y<180)){installer_open=1;installer_step=0;return;}
  int dockh=350;if(dockh>(int)sh-45)dockh=(int)sh-45;
  int dx=8,dy=((int)sh-dockh)/2;
  if(x>=dx&&x<dx+48&&y>=dy&&y<dy+dockh){
@@ -256,7 +261,7 @@ static void event_loop(void){
   if(!(status&0x20)){
    /* Keyboard navigation works alongside the mouse, not only as a fallback. */
    if(data==0xE0)continue;
-   if(installer_open){if(data==0x4B){if(installer_step>0)installer_step--;}else if(data==0x4D||data==0x1C){if(installer_step<5&&installer_step!=3)installer_step++;}else if(data==0x01){installer_open=0;installer_step=0;}else continue;}
+   if(installer_open){if(data==0x4B){if(installer_step>0)installer_step--;}else if(data==0x4D||data==0x1C){if(installer_step<5)installer_step++;}else if(data==0x01){installer_open=0;installer_step=0;}else continue;}
    else if(data==0x4B){keyboard_selection=(keyboard_selection+5)%6;}
    else if(data==0x4D){keyboard_selection=(keyboard_selection+1)%6;}
    else if(data==0x1C){win=keyboard_selection+1;}
