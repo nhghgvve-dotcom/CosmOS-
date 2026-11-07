@@ -45,11 +45,11 @@ static int installer_open=0, installer_step=0;
 
 /* Dock hover tooltip: save and restore the small area under the label so
    pointer movement never forces a full-screen redraw. */
-static uint32_t tip_saved[140*34];
+static uint32_t tip_saved[184*48];
 static int tip_x=0, tip_y=0, tip_visible=0;
 static void tip_erase(void){
  if(!tip_visible)return;
- for(int y=0;y<34;y++)for(int x=0;x<140;x++)pixel(tip_x+x,tip_y+y,tip_saved[y*140+x]);
+ for(int y=0;y<48;y++)for(int x=0;x<184;x++)pixel(tip_x+x,tip_y+y,tip_saved[y*184+x]);
  tip_visible=0;
 }
 static void tip_draw(void){
@@ -59,12 +59,12 @@ static void tip_draw(void){
  int n=(mouse_y-dy)/56;
  if(n<0||n>=6)return;
  static const char *labels[6]={"FINDER","COSMOSTAR","NOTES","SETTINGS","CALENDAR","APP STORE"};
- tip_x=mouse_x+54;if(tip_x+140>(int)sw)tip_x=(int)sw-140;
- tip_y=mouse_y+8;if(tip_y+34>(int)sh)tip_y=(int)sh-34;
+ tip_x=mouse_x+54;if(tip_x+184>(int)sw)tip_x=(int)sw-184;
+ tip_y=mouse_y+8;if(tip_y+48>(int)sh)tip_y=(int)sh-48;
  if(tip_x<0||tip_y<0)return;
- for(int y=0;y<34;y++)for(int x=0;x<140;x++)tip_saved[y*140+x]=fb[(uint64_t)(tip_y+y)*stride+(uint64_t)(tip_x+x)];
- roundrect(tip_x,tip_y,140,34,0xF22B293D);
- text(tip_x+10,tip_y+12,labels[n],0xFFFFFFFF,2);
+ for(int y=0;y<48;y++)for(int x=0;x<184;x++)tip_saved[y*184+x]=fb[(uint64_t)(tip_y+y)*stride+(uint64_t)(tip_x+x)];
+ roundrect(tip_x,tip_y,184,48,0xF22B293D);
+ text(tip_x+10,tip_y+8,labels[n],0xFFFFFFFF,2);
  tip_visible=1;
 }
 static const char* names[6]={"FINDER","COSMOSTAR","NOTES","SETTINGS","CALENDAR","APP STORE"};
