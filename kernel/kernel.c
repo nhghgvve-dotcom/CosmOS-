@@ -25,11 +25,11 @@ static void roundrect(int x,int y,int w,int h,uint32_t c){if(w<=0||h<=0)return;i
 #include "font.h"
 static void text(int x,int y,const char*s,uint32_t c,int scale){
  if(scale<1)scale=1;
- for(;*s;s++,x+=8*scale){
+ for(;*s;s++,x+=9*scale){
   unsigned ch=(unsigned char)*s;
   if(ch<32||ch>126)continue;
   const uint8_t (*glyph)[8]=cosmos_font[ch-32];
-  for(int row=0;row<12;row++)for(int col=0;col<7;col++){
+  for(int row=0;row<16;row++)for(int col=0;col<8;col++){
    unsigned a=glyph[row][col];
    if(!a)continue;
    if(scale==1)coverage_pixel(x+col,y+row,c,a);
