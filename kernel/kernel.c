@@ -38,7 +38,23 @@ static void text(int x,int y,const char*s,uint32_t c,int scale){
  }
 }
 static void background(void){for(uint64_t y=0;y<sh;y++)for(uint64_t x=0;x<sw;x++){uint8_t b=32+(uint8_t)(y*28/sh);pixel((int)x,(int)y,0xFF000000u|(12u<<16)|(13u<<8)|b);}for(int i=0;i<70;i++){uint64_t x=(i*7919u+37u)%sw,y=(i*3571u+19u)%sh;pixel((int)x,(int)y,0xFF7776B8);}}
-static void icon(int x,int y,int kind){uint32_t a=0xFF9B8CFF;roundrect(x,y,38,34,0xFF25243D);if(kind==0){rect(x+7,y+8,24,17,0xFFB8A7FF);rect(x+7,y+8,24,4,0xFFE8E4FF);}else if(kind==1){roundrect(x+7,y+5,24,23,0xFF6D9FEF);rect(x+10,y+9,18,2,0xFFFFFFFF);}else if(kind==2){roundrect(x+7,y+6,24,22,0xFF4BBE9A);rect(x+11,y+11,16,2,0xFFFFFFFF);rect(x+11,y+16,12,2,0xFFFFFFFF);}else if(kind==3){roundrect(x+7,y+6,24,22,0xFFDAA75D);rect(x+11,y+10,16,2,0xFFFFFFFF);rect(x+11,y+15,16,2,0xFFFFFFFF);}else{roundrect(x+7,y+6,24,22,a);rect(x+11,y+10,16,3,0xFFFFFFFF);}}
+static void icon(int x,int y,int kind){
+ roundrect(x,y,38,34,0xFF25243D);
+ if(kind==0){ /* Finder: blue folder */
+  roundrect(x+6,y+9,26,19,0xFF6DA9F5);roundrect(x+8,y+6,12,7,0xFF8CC2FF);rect(x+9,y+15,20,2,0xFFDCEBFF);
+ }else if(kind==1){ /* CosmoStar: orbiting planet */
+  aa_circle(x+19,y+17,12,0xFF8B79E8);aa_circle(x+19,y+17,7,0xFF25243D);rect(x+7,y+16,24,2,0xFFD8D0FF);aa_circle(x+28,y+10,3,0xFFFFFFFF);
+ }else if(kind==2){ /* Notes: paper and lines */
+  roundrect(x+9,y+4,21,26,0xFFF2EEDC);rect(x+13,y+11,13,2,0xFF67B99C);rect(x+13,y+16,13,2,0xFF67B99C);rect(x+13,y+21,10,2,0xFF67B99C);
+ }else if(kind==3){ /* Settings: gear */
+  aa_circle(x+19,y+17,12,0xFFDAA75D);aa_circle(x+19,y+17,5,0xFF25243D);
+  rect(x+17,y+3,4,7,0xFFDAA75D);rect(x+17,y+24,4,7,0xFFDAA75D);rect(x+4,y+15,7,4,0xFFDAA75D);rect(x+27,y+15,7,4,0xFFDAA75D);
+ }else if(kind==4){ /* Calendar */
+  roundrect(x+7,y+5,24,25,0xFFF2F2F7);roundrect(x+7,y+5,24,9,0xFFE86D78);rect(x+12,y+17,4,3,0xFF72758B);rect(x+20,y+17,4,3,0xFF72758B);rect(x+12,y+23,4,3,0xFF72758B);rect(x+20,y+23,4,3,0xFF72758B);
+ }else{ /* App Store: stylized A */
+  aa_circle(x+19,y+17,14,0xFF6F67C9);rect(x+12,y+9,3,19,0xFFFFFFFF);rect(x+23,y+9,3,19,0xFFFFFFFF);rect(x+11,y+19,17,3,0xFFFFFFFF);
+ }
+}
 static int win=0, mouse_x=100,mouse_y=100, left_down=0, mouse_enabled=0, keyboard_selection=0;
 static int installer_open=0, installer_step=0;
 static int vm_detected=0;
@@ -54,27 +70,27 @@ static int detect_virtual_machine(void){
 
 /* Dock hover tooltip: save and restore the small area under the label so
    pointer movement never forces a full-screen redraw. */
-static uint32_t tip_saved[184*48];
+static uint32_t tip_saved[116*24];
 static int tip_x=0, tip_y=0, tip_visible=0;
 static void tip_erase(void){
  if(!tip_visible)return;
- for(int y=0;y<48;y++)for(int x=0;x<184;x++)pixel(tip_x+x,tip_y+y,tip_saved[y*184+x]);
+ for(int y=0;y<24;y++)for(int x=0;x<116;x++)pixel(tip_x+x,tip_y+y,tip_saved[y*116+x]);
  tip_visible=0;
 }
 static void tip_draw(void){
  if(installer_open||tip_visible)return;
- int dockh=350;if(dockh>(int)sh-45)dockh=(int)sh-45;
+ int dockh=6*74+18;if(dockh>(int)sh-45)dockh=(int)sh-45;
  int dx=8,dy=((int)sh-dockh)/2;
- if(mouse_x<dx||mouse_x>=dx+48||mouse_y<dy||mouse_y>=dy+dockh)return;
- int n=(mouse_y-dy)/56;
+ if(mouse_x<dx+28||mouse_x>=dx+88||mouse_y<dy+9||mouse_y>=dy+9+6*74)return;
+ int n=(mouse_y-dy-9)/74;
  if(n<0||n>=6)return;
  static const char *labels[6]={"FINDER","COSMOSTAR","NOTES","SETTINGS","CALENDAR","APP STORE"};
- tip_x=mouse_x+54;if(tip_x+184>(int)sw)tip_x=(int)sw-184;
- tip_y=mouse_y+8;if(tip_y+48>(int)sh)tip_y=(int)sh-48;
- if(tip_x<0||tip_y<0)return;
- for(int y=0;y<48;y++)for(int x=0;x<184;x++)tip_saved[y*184+x]=fb[(uint64_t)(tip_y+y)*stride+(uint64_t)(tip_x+x)];
- roundrect(tip_x,tip_y,184,48,0xF22B293D);
- text(tip_x+10,tip_y+8,labels[n],0xFFFFFFFF,2);
+ tip_x=dx;tip_y=dy+49+n*74;
+ if(tip_x<0||tip_y<0||tip_x+116>(int)sw||tip_y+24>(int)sh)return;
+ for(int y=0;y<24;y++)for(int x=0;x<116;x++)tip_saved[y*116+x]=fb[(uint64_t)(tip_y+y)*stride+(uint64_t)(tip_x+x)];
+ roundrect(tip_x+4,tip_y,108,22,0xF22B293D);
+ int len=0;while(labels[n][len])len++;
+ text(tip_x+(116-len*8)/2,tip_y+6,labels[n],0xFFFFFFFF,1);
  tip_visible=1;
 }
 static const char* names[6]={"FINDER","COSMOSTAR","NOTES","SETTINGS","CALENDAR","APP STORE"};
@@ -274,10 +290,10 @@ static void draw_desktop(void){
  icon(fx,42,3);
  text(fx-3,82,"NOTES",0xFFE6E2FF,1);
  /* Vertical translucent dock matching the supplied desktop. */
- int dockh=350;if(dockh>(int)sh-45)dockh=(int)sh-45;
+ int dockh=6*74+18;if(dockh>(int)sh-45)dockh=(int)sh-45;
  int dx=8,dy=((int)sh-dockh)/2;
- roundrect(dx,dy,48,dockh,0xB51A2140);
- for(int i=0;i<6;i++)icon(dx+5,dy+9+i*56,i);
+ roundrect(dx,dy,116,dockh,0xB51A2140);
+ for(int i=0;i<6;i++)icon(dx+39,dy+9+i*74,i);
  draw_window();
 }
 static const char *cursor[16]={"X...............","XX..............","XWX.............","XWWX............","XWWWX...........","XWWWWX..........","XWWWWWX.........","XWWWWWWX........","XWWWWWWWX.......","XWWWWXXXXX......","XWXWWX..........","XX.XWWX.........","X...XWWX........",".....XWWX.......","......XWWX......",".......XX......."};
@@ -306,10 +322,10 @@ static void handle_click(int x,int y){
   return;
  }
  if((y<30&&x>=300&&x<400)||(x>=(int)sw-270&&x<(int)sw-24&&y>=100&&y<180)){installer_open=1;installer_step=0;return;}
- int dockh=350;if(dockh>(int)sh-45)dockh=(int)sh-45;
+ int dockh=6*74+18;if(dockh>(int)sh-45)dockh=(int)sh-45;
  int dx=8,dy=((int)sh-dockh)/2;
- if(x>=dx&&x<dx+48&&y>=dy&&y<dy+dockh){
-  int n=(y-dy-9)/56;if(n>=0&&n<6)win=n+1;return;
+ if(x>=dx+28&&x<dx+88&&y>=dy+9&&y<dy+9+6*74){
+  int n=(y-dy-9)/74;if(n>=0&&n<6)win=n+1;return;
  }
  if(win){
   int w=(int)(sw*2/3),h=(int)(sh*2/3),wx=((int)sw-w)/2,wy=((int)sh-h)/2;
