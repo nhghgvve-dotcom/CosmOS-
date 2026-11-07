@@ -53,7 +53,8 @@ Do not install this prototype onto your laptop's real drive. Test it in a new Vi
 
 ## What this prototype does not do yet
 
-- No disk installer or persistent filesystem.
+- The CosmOS Installer wizard interface is available from the desktop menu bar. It includes welcome, language/region, keyboard, destination, account, and review screens. Disk installation is deliberately blocked in this build because disk drivers and a persistent filesystem are not implemented yet; the wizard does not write to disks.
+- No persistent filesystem or working disk installer backend yet.
 - No USB, audio, networking, GPU acceleration, or general device drivers.
 - No window manager or app store yet.
 - No Windows `.exe` support yet.
