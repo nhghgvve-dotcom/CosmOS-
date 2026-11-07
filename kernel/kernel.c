@@ -116,7 +116,13 @@ static void draw_desktop(void){
  draw_window();
 }
 static const char *cursor[16]={"X...............","XX..............","XWX.............","XWWX............","XWWWX...........","XWWWWX..........","XWWWWWX.........","XWWWWWWX........","XWWWWWWWX.......","XWWWWXXXXX......","XWXWWX..........","XX.XWWX.........","X...XWWX........",".....XWWX.......","......XWWX......",".......XX......."};
-static void cursor_draw(void){for(int y=0;y<16;y++)for(int x=0;x<16;x++){char c=cursor[y][x];if(c=='X')pixel(mouse_x+x,mouse_y+y,0xFF05050A);else if(c=='W')pixel(mouse_x+x,mouse_y+y,0xFFFFFFFF);}}
+/* Save-under cursor: restore only the 16x16 region instead of repainting the
+   entire framebuffer on every mouse packet. This prevents visible full-screen
+   flashing and greatly reduces CPU work while moving the pointer. */
+static uint32_t cursor_saved[16*16];
+static int cursor_visible=0;
+static void cursor_erase(void){if(!cursor_visible)return;for(int y=0;y<16;y++)for(int x=0;x<16;x++)pixel(mouse_x+x,mouse_y+y,cursor_saved[y*16+x]);cursor_visible=0;}
+static void cursor_draw(void){for(int y=0;y<16;y++)for(int x=0;x<16;x++){cursor_saved[y*16+x]=fb[(uint64_t)(mouse_y+y)*stride+(uint64_t)(mouse_x+x)];char c=cursor[y][x];if(c=='X')pixel(mouse_x+x,mouse_y+y,0xFF05050A);else if(c=='W')pixel(mouse_x+x,mouse_y+y,0xFFFFFFFF);}cursor_visible=1;}
 static int wait_empty(void){for(int i=0;i<100000;i++){if(!(inb(0x64)&2))return 1;pause_cpu();}return 0;}
 static int read_aux(uint8_t*v){for(int i=0;i<100000;i++){uint8_t s=inb(0x64);if((s&0x21)==0x21){*v=inb(0x60);return 1;}pause_cpu();}return 0;}
 static int mouse_cmd(uint8_t c){uint8_t r;if(!wait_empty())return 0;outb(0x64,0xD4);if(!wait_empty())return 0;outb(0x60,c);return read_aux(&r)&&r==0xFA;}
@@ -147,7 +153,7 @@ static void event_loop(void){
     else if(data==0x1C){win=keyboard_selection+1;}
     else if(data==0x01){win=0;}
     else continue;
-    draw_desktop();cursor_draw();
+    cursor_erase();draw_desktop();cursor_draw();
    }
    continue;
   }
@@ -157,14 +163,19 @@ static void event_loop(void){
   if(n<3)continue;
   n=0;
   if(p[0]&0xC0)continue;
+  cursor_erase();
   mouse_x+=(int8_t)p[1];mouse_y-=(int8_t)p[2];
   if(mouse_x<0)mouse_x=0;if(mouse_y<0)mouse_y=0;
   if(mouse_x>(int)sw-16)mouse_x=(int)sw-16;
   if(mouse_y>(int)sh-16)mouse_y=(int)sh-16;
   int pressed=(p[0]&1)!=0;
+  int old_win=win;
   if(pressed&&!left_down)handle_click(mouse_x,mouse_y);
   left_down=pressed;
-  draw_desktop();cursor_draw();
+  /* Only repaint the desktop when a click changes the active window. Normal
+     pointer movement now touches just the old and new cursor rectangles. */
+  if(win!=old_win)draw_desktop();
+  cursor_draw();
  }
 }
 void _start(void){struct limine_framebuffer_response*r=framebuffer_request.response;if(!r||!r->framebuffer_count)for(;;)__asm__ volatile("cli;hlt");struct limine_framebuffer*f=r->framebuffers[0];if(!f||!f->address||f->bpp!=32||f->width<320||f->height<200||f->pitch<f->width*4)for(;;)__asm__ volatile("cli;hlt");fb=f->address;sw=f->width;sh=f->height;stride=f->pitch/4;mouse_x=(int)sw/2;mouse_y=(int)sh/2;draw_desktop();cursor_draw();mouse_enabled=mouse_init();event_loop();}
