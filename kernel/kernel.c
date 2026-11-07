@@ -1,6 +1,7 @@
 #include <stdint.h>
 #include <stddef.h>
 #include "limine.h"
+#include "storage.h"
 
 /* CosmOS kernel framebuffer + first native desktop shell.
    This is freestanding kernel code: no hosted browser/HTML runtime yet. */
@@ -41,6 +42,7 @@ static void icon(int x,int y,int kind){uint32_t a=0xFF9B8CFF;roundrect(x,y,38,34
 static int win=0, mouse_x=100,mouse_y=100, left_down=0, mouse_enabled=0, keyboard_selection=0;
 static int installer_open=0, installer_step=0;
 static int vm_detected=0;
+static int storage_count=0;
 static int detect_virtual_machine(void){
  uint32_t a=1,b=0,c=0,d=0;
  __asm__ volatile("cpuid" : "+a"(a), "=b"(b), "=c"(c), "=d"(d));
@@ -160,7 +162,12 @@ static void draw_installer(void){
  int tx=86,ty=178;
  text(tx,ty,titles[installer_step],0xFFFFFFFF,2);
  text(tx,ty+42,(installer_step==3&&vm_detected)?"A virtual machine was detected. You can skip disk selection for a safe preview.":descs[installer_step],0xFFCBC7E5,1);
- if(installer_step==3&&vm_detected){
+ if(installer_step==3&&storage_count>0){
+  roundrect(tx,ty+78,(int)sw-190,64,0xFF263F3A);
+  text(tx+14,ty+92,"IDE VIRTUAL DISK DETECTED",0xFF9BE6C3,1);
+  text(tx+14,ty+116,"ATA sector read/write driver is available.",0xFFD5F6E7,1);
+  text(tx,ty+166,"Formatting and filesystem installation are not ready yet.",0xFFBEB9DD,1);
+ }else if(installer_step==3&&vm_detected){
   roundrect(tx,ty+78,(int)sw-190,64,0xFF263F3A);
   text(tx+14,ty+92,"VIRTUAL MACHINE DETECTED",0xFF9BE6C3,1);
   text(tx+14,ty+116,"Disk selection skipped for preview mode.",0xFFD5F6E7,1);
@@ -172,8 +179,8 @@ static void draw_installer(void){
   roundrect(tx,ty+78,330,38,0xFF35324F);text(tx+14,ty+92,"U.S. Keyboard  (selected)",0xFFFFFFFF,1);
  }else if(installer_step==3){
   roundrect(tx,ty+78,(int)sw-190,64,0xFF49313A);
-  text(tx+14,ty+92,"No disk driver available",0xFFFFC2A8,1);
-  text(tx+14,ty+116,"Disk installation is not enabled in this build.",0xFFFFD8CC,1);
+  text(tx+14,ty+92,"No IDE disk detected",0xFFFFC2A8,1);
+  text(tx+14,ty+116,"Connect an IDE virtual disk in VMware.",0xFFFFD8CC,1);
   text(tx,ty+166,"Your virtual disk will not be modified.",0xFFBEB9DD,1);
  }else if(installer_step==4){
   roundrect(tx,ty+78,330,38,0xFF35324F);text(tx+14,ty+92,"Computer name: CosmOS-PC",0xFFFFFFFF,1);
@@ -182,7 +189,7 @@ static void draw_installer(void){
  }else if(installer_step==5){
   text(tx,ty+82,"Language: English (United States)",0xFFCBC7E5,1);
   text(tx,ty+112,"Keyboard: U.S.",0xFFCBC7E5,1);
-  text(tx,ty+142,vm_detected?"Destination: skipped (VM preview)":"Destination: unavailable",vm_detected?0xFF9BE6C3:0xFFFFC2A8,1);
+  text(tx,ty+142,storage_count>0?"Destination: IDE disk detected (not formatted)":(vm_detected?"Destination: skipped (VM preview)":"Destination: unavailable"),(storage_count>0||vm_detected)?0xFF9BE6C3:0xFFFFC2A8,1);
   if(vm_detected){
    text(tx,ty+184,"Virtual machine setup preview is complete.",0xFF9BE6C3,1);
    text(tx,ty+206,"No files were installed; filesystem support is still needed.",0xFFFFD18A,1);
@@ -311,4 +318,4 @@ static void event_loop(void){
   cursor_draw();
  }
 }
-void _start(void){struct limine_framebuffer_response*r=framebuffer_request.response;if(!r||!r->framebuffer_count)for(;;)__asm__ volatile("cli;hlt");struct limine_framebuffer*f=r->framebuffers[0];if(!f||!f->address||f->bpp!=32||f->width<320||f->height<200||f->pitch<f->width*4)for(;;)__asm__ volatile("cli;hlt");fb=f->address;sw=f->width;sh=f->height;stride=f->pitch/4;vm_detected=detect_virtual_machine();mouse_x=(int)sw/2;mouse_y=(int)sh/2;installer_open=1;installer_step=0;draw_desktop();cursor_draw();mouse_enabled=mouse_init();event_loop();}
+void _start(void){struct limine_framebuffer_response*r=framebuffer_request.response;if(!r||!r->framebuffer_count)for(;;)__asm__ volatile("cli;hlt");struct limine_framebuffer*f=r->framebuffers[0];if(!f||!f->address||f->bpp!=32||f->width<320||f->height<200||f->pitch<f->width*4)for(;;)__asm__ volatile("cli;hlt");fb=f->address;sw=f->width;sh=f->height;stride=f->pitch/4;vm_detected=detect_virtual_machine();storage_count=cosmos_storage_init();mouse_x=(int)sw/2;mouse_y=(int)sh/2;installer_open=1;installer_step=0;draw_desktop();cursor_draw();mouse_enabled=mouse_init();event_loop();}
