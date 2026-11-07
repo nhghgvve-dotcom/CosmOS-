@@ -68,3 +68,7 @@ Do not install this prototype onto your laptop's real drive. Test it in a new Vi
 ## Notes
 
 The ISO includes Limine as a third-party bootloader. Review its license and the current upstream documentation before redistributing a built image. The build uses the upstream `v12.x` branch; upstream changes may occasionally require build-script adjustments.
+
+## Latest ISO build
+
+The current `main` branch includes the PS/2 mouse-failure fallback and keyboard dock navigation. GitHub Actions builds the UEFI ISO on every push to `main`; download the `CosmOS-UEFI-ISO` artifact from the latest successful run.
