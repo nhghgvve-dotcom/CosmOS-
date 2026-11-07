@@ -26,7 +26,7 @@ static const uint8_t font[36][7]={
 static void text(int x,int y,const char*s,uint32_t c,int scale){for(;*s;s++,x+=6*scale){char ch=*s;if(ch>='a'&&ch<='z')ch-=32;if(ch==' ' )continue;if(ch==':'){rect(x+scale,y+scale,scale,scale,c);rect(x+scale,y+4*scale,scale,scale,c);continue;}if(ch=='-'){rect(x,y+3*scale,4*scale,scale,c);continue;}int i=-1;if(ch>='A'&&ch<='Z')i=ch-'A';else if(ch>='0'&&ch<='9')i=26+ch-'0';if(i<0)continue;for(int r=0;r<7;r++)for(int k=0;k<5;k++)if(font[i][r]&(1<<(4-k)))rect(x+k*scale,y+r*scale,scale,scale,c);}}
 static void background(void){for(uint64_t y=0;y<sh;y++)for(uint64_t x=0;x<sw;x++){uint8_t b=32+(uint8_t)(y*28/sh);pixel((int)x,(int)y,0xFF000000u|(12u<<16)|(13u<<8)|b);}for(int i=0;i<70;i++){uint64_t x=(i*7919u+37u)%sw,y=(i*3571u+19u)%sh;pixel((int)x,(int)y,0xFF7776B8);}}
 static void icon(int x,int y,int kind){uint32_t a=0xFF9B8CFF;roundrect(x,y,38,34,0xFF25243D);if(kind==0){rect(x+7,y+8,24,17,0xFFB8A7FF);rect(x+7,y+8,24,4,0xFFE8E4FF);}else if(kind==1){roundrect(x+7,y+5,24,23,0xFF6D9FEF);rect(x+10,y+9,18,2,0xFFFFFFFF);}else if(kind==2){roundrect(x+7,y+6,24,22,0xFF4BBE9A);rect(x+11,y+11,16,2,0xFFFFFFFF);rect(x+11,y+16,12,2,0xFFFFFFFF);}else if(kind==3){roundrect(x+7,y+6,24,22,0xFFDAA75D);rect(x+11,y+10,16,2,0xFFFFFFFF);rect(x+11,y+15,16,2,0xFFFFFFFF);}else{roundrect(x+7,y+6,24,22,a);rect(x+11,y+10,16,3,0xFFFFFFFF);}}
-static int win=0, mouse_x=100,mouse_y=100, left_down=0;
+static int win=0, mouse_x=100,mouse_y=100, left_down=0, mouse_enabled=0, keyboard_selection=0;
 static const char* names[6]={"FINDER","COSMOSTAR","NOTES","SETTINGS","CALENDAR","APP STORE"};
 static void draw_window(void){
  if(!win)return;
@@ -132,5 +132,39 @@ static void handle_click(int x,int y){
   if(x>=wx+8&&x<wx+32&&y>=wy+5&&y<wy+25)win=0;
  }
 }
-static void event_loop(void){uint8_t p[3];int n=0;for(;;){uint8_t s=inb(0x64);if(!(s&1)){pause_cpu();continue;}uint8_t d=inb(0x60);if(!(s&0x20))continue;if(n==0&&!(d&8))continue;p[n++]=d;if(n<3)continue;n=0;if(p[0]&0xC0)continue;mouse_x+=(int8_t)p[1];mouse_y-=(int8_t)p[2];if(mouse_x<0)mouse_x=0;if(mouse_y<0)mouse_y=0;if(mouse_x>(int)sw-16)mouse_x=(int)sw-16;if(mouse_y>(int)sh-16)mouse_y=(int)sh-16;int pressed=(p[0]&1)!=0;if(pressed&&!left_down)handle_click(mouse_x,mouse_y);left_down=pressed;draw_desktop();cursor_draw();}}
-void _start(void){struct limine_framebuffer_response*r=framebuffer_request.response;if(!r||!r->framebuffer_count)for(;;)__asm__ volatile("cli;hlt");struct limine_framebuffer*f=r->framebuffers[0];if(!f||!f->address||f->bpp!=32)for(;;)__asm__ volatile("cli;hlt");fb=f->address;sw=f->width;sh=f->height;stride=f->pitch/4;mouse_x=(int)sw/2;mouse_y=(int)sh/2;draw_desktop();cursor_draw();if(!mouse_init())for(;;)pause_cpu();event_loop();}
+static void event_loop(void){
+ uint8_t p[3];int n=0;
+ for(;;){
+  uint8_t status=inb(0x64);
+  if(!(status&1)){pause_cpu();continue;}
+  uint8_t data=inb(0x60);
+  if(!(status&0x20)){
+   /* Keyboard fallback: arrow keys choose dock apps; Enter opens one. */
+   if(!mouse_enabled){
+    if(data==0xE0)continue;
+    if(data==0x4B){keyboard_selection=(keyboard_selection+5)%6;}
+    else if(data==0x4D){keyboard_selection=(keyboard_selection+1)%6;}
+    else if(data==0x1C){win=keyboard_selection+1;}
+    else if(data==0x01){win=0;}
+    else continue;
+    draw_desktop();cursor_draw();
+   }
+   continue;
+  }
+  if(!mouse_enabled)continue;
+  if(n==0&&!(data&8))continue;
+  p[n++]=data;
+  if(n<3)continue;
+  n=0;
+  if(p[0]&0xC0)continue;
+  mouse_x+=(int8_t)p[1];mouse_y-=(int8_t)p[2];
+  if(mouse_x<0)mouse_x=0;if(mouse_y<0)mouse_y=0;
+  if(mouse_x>(int)sw-16)mouse_x=(int)sw-16;
+  if(mouse_y>(int)sh-16)mouse_y=(int)sh-16;
+  int pressed=(p[0]&1)!=0;
+  if(pressed&&!left_down)handle_click(mouse_x,mouse_y);
+  left_down=pressed;
+  draw_desktop();cursor_draw();
+ }
+}
+void _start(void){struct limine_framebuffer_response*r=framebuffer_request.response;if(!r||!r->framebuffer_count)for(;;)__asm__ volatile("cli;hlt");struct limine_framebuffer*f=r->framebuffers[0];if(!f||!f->address||f->bpp!=32||f->width<320||f->height<200||f->pitch<f->width*4)for(;;)__asm__ volatile("cli;hlt");fb=f->address;sw=f->width;sh=f->height;stride=f->pitch/4;mouse_x=(int)sw/2;mouse_y=(int)sh/2;draw_desktop();cursor_draw();mouse_enabled=mouse_init();event_loop();}
