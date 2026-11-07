@@ -24,18 +24,16 @@ static void aa_circle(int cx,int cy,int radius,uint32_t color){int x0=cx-radius-
 static void roundrect(int x,int y,int w,int h,uint32_t c){if(w<=0||h<=0)return;int r=6;if(w<2*r)r=w/2;if(h<2*r)r=h/2;for(int yy=y;yy<y+h;yy++)for(int xx=x;xx<x+w;xx++){unsigned hit=0;for(int sy=0;sy<4;sy++)for(int sx=0;sx<4;sx++){int px=xx*4+sx,py=yy*4+sy;int lx=(x+r)*4,hx=(x+w-r)*4,ly=(y+r)*4,hy=(y+h-r)*4;int qx=px<lx?lx:(px>hx?hx:px),qy=py<ly?ly:(py>hy?hy:py);int dx=px-qx,dy=py-qy;if(dx*dx+dy*dy<=r*r*16)hit++;}if(hit)coverage_pixel(xx,yy,c,hit*255/16);}}
 #include "font.h"
 static void text(int x,int y,const char*s,uint32_t c,int scale){
- if(scale<1)scale=1;
- for(;*s;s++,x+=9*scale){
+ int fi=scale<=1?0:(scale==2?1:2);
+ for(;*s;s++){
   unsigned ch=(unsigned char)*s;
-  if(ch<32||ch>126)continue;
-  const uint8_t (*glyph)[8]=cosmos_font[ch-32];
-  for(int row=0;row<16;row++)for(int col=0;col<8;col++){
+  if(ch<32||ch>126)ch='?';
+  const uint8_t (*glyph)[32]=cosmos_font[fi][ch-32];
+  for(int row=0;row<32;row++)for(int col=0;col<32;col++){
    unsigned a=glyph[row][col];
-   if(!a)continue;
-   if(scale==1)coverage_pixel(x+col,y+row,c,a);
-   else for(int yy=0;yy<scale;yy++)for(int xx=0;xx<scale;xx++)
-    coverage_pixel(x+col*scale+xx,y+row*scale+yy,c,a);
+   if(a)coverage_pixel(x+col,y+row,c,a);
   }
+  x+=cosmos_advance[fi][ch-32];
  }
 }
 static void background(void){for(uint64_t y=0;y<sh;y++)for(uint64_t x=0;x<sw;x++){uint8_t b=32+(uint8_t)(y*28/sh);pixel((int)x,(int)y,0xFF000000u|(12u<<16)|(13u<<8)|b);}for(int i=0;i<70;i++){uint64_t x=(i*7919u+37u)%sw,y=(i*3571u+19u)%sh;pixel((int)x,(int)y,0xFF7776B8);}}
