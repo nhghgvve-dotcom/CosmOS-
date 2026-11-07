@@ -38,6 +38,7 @@ static void text(int x,int y,const char*s,uint32_t c,int scale){
  }
 }
 static int light_mode=0;
+static int settings_page=0;
 static void background(void){for(uint64_t y=0;y<sh;y++)for(uint64_t x=0;x<sw;x++){uint8_t b=light_mode?238+(uint8_t)(y*12/sh):32+(uint8_t)(y*28/sh);uint32_t c=light_mode?(0xFF000000u|(b<<16)|((b+2)<<8)|(b+8)):(0xFF000000u|(12u<<16)|(13u<<8)|b);pixel((int)x,(int)y,c);}for(int i=0;i<70;i++){uint64_t x=(i*7919u+37u)%sw,y=(i*3571u+19u)%sh;pixel((int)x,(int)y,light_mode?0xFFB5B5D0:0xFF7776B8);}}
 static void icon(int x,int y,int kind){
  roundrect(x,y,38,34,light_mode?0xFFE3E5F0:0xFF25243D);
@@ -57,7 +58,6 @@ static void icon(int x,int y,int kind){
  }
 }
 static int win=0, mouse_x=100,mouse_y=100, left_down=0, mouse_enabled=0, keyboard_selection=0;
-static int installer_open=0, installer_step=0;
 static int vm_detected=0;
 static int storage_count=0;
 static int partition_count=0;
@@ -79,7 +79,7 @@ static void tip_erase(void){
  tip_visible=0;
 }
 static void tip_draw(void){
- if(installer_open||tip_visible)return;
+ if(tip_visible)return;
  int dockh=6*74+18;if(dockh>(int)sh-45)dockh=(int)sh-45;
  int dx=8,dy=((int)sh-dockh)/2;
  if(mouse_x<dx+28||mouse_x>=dx+88||mouse_y<dy+9||mouse_y>=dy+9+6*74)return;
@@ -137,9 +137,12 @@ static void draw_window(void){
   roundrect(x+20,y+96,w-40,48,light_mode?0xFFE6EAF3:0xFF302E49);
   text(x+36,y+116,light_mode?"APPEARANCE: LIGHT":"APPEARANCE: DARK",light_mode?0xFF20243A:0xFFFFFFFF,1);
   roundrect(x+20,y+155,w-40,48,light_mode?0xFFE6EAF3:0xFF302E49);
-  text(x+36,y+175,"DISPLAY",0xFFFFFFFF,1);
+  text(x+36,y+175,"LANGUAGE & REGION",light_mode?0xFF20243A:0xFFFFFFFF,1);
   roundrect(x+20,y+214,w-40,48,light_mode?0xFFE6EAF3:0xFF302E49);
-  text(x+36,y+234,"SOUND",0xFFFFFFFF,1);
+  text(x+36,y+234,"TIME ZONE",light_mode?0xFF20243A:0xFFFFFFFF,1);
+  roundrect(x+20,y+273,w-40,48,light_mode?0xFFE6EAF3:0xFF302E49);
+  text(x+36,y+293,"KEYBOARD LAYOUT",light_mode?0xFF20243A:0xFFFFFFFF,1);
+  text(x+20,y+350,"Options UI added; saving preferences needs persistent storage.",light_mode?0xFF626B80:0xFFBEB9DD,1);
  }else if(win==5){
   text(x+24,y+68,"CALENDAR",0xFFE4E1FF,2);
   text(x+24,y+105,"YOUR SCHEDULE",0xFFBEB9DD,1);
@@ -275,17 +278,12 @@ static void draw_desktop(void){
  text(170,10,"View",light_mode?0xFF34394D:0xFFE0DDF5,1);
  text(210,10,"Window",light_mode?0xFF34394D:0xFFE0DDF5,1);
  text(266,10,"Help",light_mode?0xFF34394D:0xFFE0DDF5,1);
- text(316,10,"Install",light_mode?0xFF6655B8:0xFFB8A7FF,1);
  char t[9];read_clock(t);text((int)sw-90,10,t,light_mode?0xFF20243A:0xFFFFFFFF,1);
  /* Subtle purple nebula highlights. */
  for(int y=25;y<(int)sh;y+=4){
   int band=(int)((y*19u)%83u);
   if(band<8)rect(48,y,(int)sw-48,1,0x101B1240);
  }
- /* Prominent installer shortcut so setup is easy to discover. */
- roundrect((int)sw-258,112,226,58,0xD52A2944);
- icon((int)sw-246,124,4);
- text((int)sw-196,137,"INSTALL COSMOS",0xFFFFFFFF,1);
  /* Notes.txt desktop shortcut at upper right. */
  int fx=(int)sw-82;
  icon(fx,42,3);
@@ -310,19 +308,6 @@ static int read_aux(uint8_t*v){for(int i=0;i<100000;i++){uint8_t s=inb(0x64);if(
 static int mouse_cmd(uint8_t c){uint8_t r;if(!wait_empty())return 0;outb(0x64,0xD4);if(!wait_empty())return 0;outb(0x60,c);return read_aux(&r)&&r==0xFA;}
 static int mouse_init(void){if(!wait_empty())return 0;outb(0x64,0xA8);if(!wait_empty())return 0;outb(0x64,0x20);uint8_t cfg=0;for(int i=0;i<100000;i++){if(inb(0x64)&1){cfg=inb(0x60);break;}pause_cpu();}cfg&=(uint8_t)~0x22;if(!wait_empty())return 0;outb(0x64,0x60);if(!wait_empty())return 0;outb(0x60,cfg);return mouse_cmd(0xF6)&&mouse_cmd(0xF4);}
 static void handle_click(int x,int y){
- if(installer_open){
-  int px=installer_panel_x(),py=installer_panel_y(),pw=installer_panel_w(),ph=installer_panel_h();
-  int by=py+ph-76;
-  if(y>=by&&y<=by+48&&x>=px+pw-340&&x<=px+pw-214){installer_open=0;installer_step=0;return;}
-  if(y>=by&&y<=by+48&&x>=px+pw-198&&x<=px+pw-32){
-   if(installer_step<5)installer_step++;
-   else if(vm_detected){installer_open=0;installer_step=0;}
-   return;
-  }
-  if(x<px+70&&y<py+58){installer_open=0;installer_step=0;return;}
-  return;
- }
- if((y<30&&x>=300&&x<400)||(x>=(int)sw-270&&x<(int)sw-24&&y>=100&&y<180)){installer_open=1;installer_step=0;return;}
  int dockh=6*74+18;if(dockh>(int)sh-45)dockh=(int)sh-45;
  int dx=8,dy=((int)sh-dockh)/2;
  if(x>=dx+28&&x<dx+88&&y>=dy+9&&y<dy+9+6*74){
@@ -331,7 +316,10 @@ static void handle_click(int x,int y){
  if(win){
   int w=(int)(sw*2/3),h=(int)(sh*2/3),wx=((int)sw-w)/2,wy=((int)sh-h)/2;
   if(x>=wx+8&&x<wx+32&&y>=wy+5&&y<wy+25)win=0;
-  else if(win==4&&x>=wx+20&&x<wx+w-20&&y>=wy+96&&y<=wy+144)light_mode=!light_mode;
+  else if(win==4&&x>=wx+20&&x<wx+w-20&&y>=wy+96&&y<=wy+144){light_mode=!light_mode;}
+  else if(win==4&&x>=wx+20&&x<wx+w-20&&y>=wy+155&&y<=wy+203){settings_page=1;}
+  else if(win==4&&x>=wx+20&&x<wx+w-20&&y>=wy+214&&y<=wy+262){settings_page=2;}
+  else if(win==4&&x>=wx+20&&x<wx+w-20&&y>=wy+273&&y<=wy+321){settings_page=3;}
  }
 }
 static void event_loop(void){
@@ -343,8 +331,7 @@ static void event_loop(void){
   if(!(status&0x20)){
    /* Keyboard navigation works alongside the mouse, not only as a fallback. */
    if(data==0xE0)continue;
-   if(installer_open){if(data==0x4B){if(installer_step>0)installer_step--;}else if(data==0x4D||data==0x1C){if(installer_step<5)installer_step++;}else if(data==0x01){installer_open=0;installer_step=0;}else continue;}
-   else if(data==0x4B){keyboard_selection=(keyboard_selection+5)%6;}
+   if(data==0x4B){keyboard_selection=(keyboard_selection+5)%6;}
    else if(data==0x4D){keyboard_selection=(keyboard_selection+1)%6;}
    else if(data==0x1C){win=keyboard_selection+1;}
    else if(data==0x01){win=0;}
@@ -381,4 +368,4 @@ void _start(void){struct limine_framebuffer_response*r=framebuffer_request.respo
   for(int i=0;i<n;i++) if(found[i].type==0x0B||found[i].type==0x0C||found[i].type==0x0E||found[i].type==0x06)
    if(cosmos_fat32_mount(d,found[i].start_lba,&fat32_volume)) fat32_count++;
  }
- mouse_x=(int)sw/2;mouse_y=(int)sh/2;installer_open=1;installer_step=0;draw_desktop();cursor_draw();mouse_enabled=mouse_init();event_loop();}
+ mouse_x=(int)sw/2;mouse_y=(int)sh/2;draw_desktop();cursor_draw();mouse_enabled=mouse_init();event_loop();}
