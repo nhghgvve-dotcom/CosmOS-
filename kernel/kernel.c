@@ -45,6 +45,10 @@ static void text(int x,int y,const char*s,uint32_t c,int scale){
   x+=cosmos_advance[fi][ch-32];
  }
 }
+/* Diagnostic profile for VMware: boot the framebuffer desktop without
+   touching PCI, NIC DMA, ATA storage, or the PS/2 mouse controller. */
+#define COSMOS_MINIMAL_VMWARE_BOOT 1
+
 static int light_mode=0;
 static int settings_page=0;
 /* Keep retired installer code buildable, but never launch it on startup. */
@@ -420,7 +424,12 @@ static void event_loop(void){
  uint8_t p[3];int n=0;
  for(;;){
   uint8_t status=inb(0x64);
-  if(!(status&1)){cosmos_e1000_poll();cosmos_net_stack_poll();pause_cpu();continue;}
+  if(!(status&1)){
+#if !COSMOS_MINIMAL_VMWARE_BOOT
+   cosmos_e1000_poll();cosmos_net_stack_poll();
+#endif
+   pause_cpu();continue;
+  }
   uint8_t data=inb(0x60);
   if(!(status&0x20)){
    /* Keyboard navigation works alongside the mouse, not only as a fallback. */
@@ -464,10 +473,24 @@ static void event_loop(void){
   cursor_draw();
  }
 }
-void _start(void){struct limine_framebuffer_response*r=framebuffer_request.response;if(!r||!r->framebuffer_count)for(;;)__asm__ volatile("cli;hlt");struct limine_framebuffer*f=r->framebuffers[0];if(!f||!f->address||f->bpp!=32||f->width<320||f->height<200||f->pitch<f->width*4)for(;;)__asm__ volatile("cli;hlt");fb=f->address;sw=f->width;sh=f->height;stride=f->pitch/4;vm_detected=detect_virtual_machine();cosmos_memory_init();cosmos_pci_init();cosmos_net_init();cosmos_e1000_init();cosmos_net_stack_init();cosmos_apps_init();storage_count=cosmos_storage_init();
+void _start(void){struct limine_framebuffer_response*r=framebuffer_request.response;if(!r||!r->framebuffer_count)for(;;)__asm__ volatile("cli;hlt");struct limine_framebuffer*f=r->framebuffers[0];if(!f||!f->address||f->bpp!=32||f->width<320||f->height<200||f->pitch<f->width*4)for(;;)__asm__ volatile("cli;hlt");fb=f->address;sw=f->width;sh=f->height;stride=f->pitch/4;vm_detected=detect_virtual_machine();
+#if !COSMOS_MINIMAL_VMWARE_BOOT
+ cosmos_memory_init();cosmos_pci_init();cosmos_net_init();cosmos_e1000_init();cosmos_net_stack_init();storage_count=cosmos_storage_init();
+#else
+ storage_count=0;
+#endif
+ cosmos_apps_init();
+#if !COSMOS_MINIMAL_VMWARE_BOOT
  for(uint8_t d=0;d<4;d++) if(cosmos_ata_devices[d].present){
   cosmos_partition found[4]; int n=cosmos_partition_scan(d,found,4); partition_count+=n;
   for(int i=0;i<n;i++) if(found[i].type==0x0B||found[i].type==0x0C||found[i].type==0x0E||found[i].type==0x06)
    if(cosmos_fat32_mount(d,found[i].start_lba,&fat32_volume)) fat32_count++;
  }
- mouse_x=(int)sw/2;mouse_y=(int)sh/2;draw_desktop();cursor_draw();mouse_enabled=mouse_init();event_loop();}
+#endif
+ mouse_x=(int)sw/2;mouse_y=(int)sh/2;draw_desktop();cursor_draw();
+#if !COSMOS_MINIMAL_VMWARE_BOOT
+ mouse_enabled=mouse_init();
+#else
+ mouse_enabled=0;
+#endif
+ event_loop();}
