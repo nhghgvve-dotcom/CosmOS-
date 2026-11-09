@@ -77,7 +77,19 @@ static void cosmos_e1000_probe(void){
   return;
  }
 }
+/* Keep the complete E1000 implementation in this unified kernel, but leave
+   hardware activation disabled during safe-boot diagnosis. The previous
+   build entered VMware's guest-CPU shutdown path during startup; probing PCI,
+   mapping device MMIO, and starting DMA before exception diagnostics are in
+   place is not safe. Re-enable after the fault is identified and guarded. */
+#define COSMOS_E1000_SAFE_BOOT 1
 static int cosmos_e1000_init(void){
+#if COSMOS_E1000_SAFE_BOOT
+ cosmos_e1000.present=0;
+ cosmos_e1000.initialized=0;
+ cosmos_e1000.link_up=0;
+ return 0;
+#else
  cosmos_e1000_probe();
  if(!cosmos_e1000.present||!cosmos_hhdm_offset)return 0;
  cosmos_e1000_regs=(volatile uint32_t*)cosmos_phys_to_virt(cosmos_e1000.mmio_base);
@@ -119,6 +131,7 @@ static int cosmos_e1000_init(void){
  cosmos_e1000.initialized=1;
  cosmos_e1000.link_up=(cosmos_e1000_read(E1000_STATUS)&2u)!=0;
  return 1;
+#endif
 }
 static int cosmos_e1000_send(const void *frame,size_t length){
  if(!cosmos_e1000.initialized||!frame||length<14||length>COSMOS_E1000_BUF)return 0;
