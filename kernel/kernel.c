@@ -488,9 +488,7 @@ void _start(void){struct limine_framebuffer_response*r=framebuffer_request.respo
  }
 #endif
  mouse_x=(int)sw/2;mouse_y=(int)sh/2;draw_desktop();cursor_draw();
-#if !COSMOS_MINIMAL_VMWARE_BOOT
+/* Keep PS/2 mouse support enabled in the minimal VMware profile.
+   Only PCI/network and ATA probing are disabled for this diagnostic build. */
  mouse_enabled=mouse_init();
-#else
- mouse_enabled=0;
-#endif
  event_loop();}
